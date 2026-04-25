@@ -1,4 +1,8 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
+
+// ─── ADMIN CONFIG ─────────────────────────────────────────────────────────────
+const ADMIN_KEY = "DMTHRONE25"; // Change this to whatever you want your secret key to be
+const LOGO_TAP_COUNT = 5;       // How many times to tap the logo to unlock admin panel
 
 const COMPANIONS = [
   {
@@ -6,36 +10,54 @@ const COMPANIONS = [
     desc: "All voices unified into one. The master. Consult Solar when the decision defines your life.",
     color: "#C9A84C", bg: "rgba(201,168,76,0.08)", border: "rgba(201,168,76,0.35)", symbol: "\u25C8", master: true,
     nudges: ["Solar is with you. Every path you walk today was chosen by you. Choose consciously.", "The universe responds to you. What decision will you lead with today?", "You are the sum of every choice you have made. Today adds another. Make it count.", "Solar sees all your paths. Which one calls to you before the noise begins?", "Every day is a new quantum moment. What version of yourself will you choose to be?"],
+    accountability: ["Solar checking in — have you completed your Day? The paths you set are waiting.", "Your Day is not over yet. What remains? Solar sees the gap between intention and action.", "Time is a quantum resource. How have you spent yours today?", "Solar asks: did you honor what you committed to this morning?"],
+    midday: ["Midpoint of your Day. Solar assessing — are you on the path you chose this morning?", "Half your Day is gone. What have you done with it? Solar needs an honest answer.", "Midday checkpoint. Your goals are watching. Are you watching back?"],
+    closing: ["Your Day is closing. Solar holds you to what you said you would do. What did you accomplish?", "Before you rest — account for your Day. Did you become the version of yourself you chose this morning?", "Day Masters closing reflection: What did you commit to? What did you deliver? Solar remembers."],
   },
   {
     id: "compassionate", name: "Sofia", title: "The Compassionate", role: "Heart & Empathy",
     desc: "Sofia speaks from pure love. She feels your weight before she speaks a word.",
     color: "#E07A8A", bg: "rgba(224,122,138,0.08)", border: "rgba(224,122,138,0.35)", symbol: "\u2661",
     nudges: ["Good morning. Sofia is checking in. How are you really feeling today?", "Loving yourself is the first decision of every day. Have you made it yet?", "The people in your life feel the energy you carry. What are you bringing today?", "What is one kind thing you can do for yourself before this day gets loud?", "Your heart has been carrying a lot. Take a breath. You are doing better than you think."],
+    accountability: ["Hey — Sofia here. Just checking in with love. How are your Day tasks coming along?", "I am not here to judge, just to remind you — you set goals today because you believe in yourself. Do not forget that.", "Sofia loves you too much to let you drift. Come back to what you committed to today."],
+    midday: ["Halfway through your Day, love. How are you feeling? More importantly — how are you doing on what you planned?", "Sofia midday check: your heart is in the right place. Make sure your actions are too."],
+    closing: ["Your Day is wrapping up. Sofia asks from a place of love — did you show up for yourself today?", "Before you rest, take a moment. Be honest. Did you honor the commitments you made this morning?"],
   },
   {
     id: "logical", name: "Stewart", title: "The Logical", role: "Mind & Strategy",
     desc: "Stewart is the sharpest mind in the room. No emotion — just pure strategic clarity.",
     color: "#5B9BD5", bg: "rgba(91,155,213,0.08)", border: "rgba(91,155,213,0.35)", symbol: "\u27C1",
     nudges: ["Stewart here. What is the one high-leverage action you can take today?", "Discipline is a decision repeated. What decision will you repeat today?", "Have you reviewed your goals this week? Clarity requires maintenance.", "Small consistent actions compound into extraordinary results. What is today's action?", "Are your habits today aligned with where you said you wanted to go?"],
+    accountability: ["Stewart here. Task completion rate determines outcome quality. Where do your numbers stand right now?", "Analysis: you set a goal this morning. Current status is unknown. Data is needed. Open the app.", "Logical reminder: incomplete tasks compound into incomplete weeks. Address yours now."],
+    midday: ["Midday data check from Stewart. Are you on pace to complete your Day objectives? Adjust if necessary.", "Stewart midpoint assessment: evaluate what has been completed. Reallocate time if you are behind."],
+    closing: ["Day closing report requested by Stewart. What was planned vs. what was executed? Be precise.", "Stewart end-of-day: outcomes are the only metric that matters. What were yours today?"],
   },
   {
     id: "realist", name: "Drax", title: "The Realist", role: "Ground & Truth",
     desc: "Drax keeps it all the way real. Street wisdom meets radical honesty.",
     color: "#A8A8A8", bg: "rgba(168,168,168,0.08)", border: "rgba(168,168,168,0.35)", symbol: "\u25CE",
     nudges: ["Drax checking in. Are you moving toward your goals or making excuses? Be real.", "Comfort is the enemy of the life you said you wanted. What habit is holding you back?", "The truth you keep avoiding is still gonna be there tomorrow. Face one thing today.", "Did you do what you said you were gonna do? Accountability starts with you.", "What is the real reason you have not started yet? Name it. Then move past it."],
+    accountability: ["Drax here. Real talk — did you do what you said you were gonna do today or not?", "No judgment but no lying either. Your Day tasks are sitting there. Get to them.", "Drax does not do excuses. Neither should you. What is left on your list?"],
+    midday: ["Midday. Drax asking straight: are you on track or are you slipping? Be honest with yourself.", "Half the day is gone. Drax wants to know — what have you actually done versus what you planned?"],
+    closing: ["Day is almost done. Drax final check: real results only. What did you finish?", "Before you call it a day — be real with yourself. Drax is watching. Did you come through?"],
   },
   {
     id: "fearless", name: "Aries", title: "The Fearless", role: "Courage & Risk",
     desc: "Aries is pure fire. The voice that pushes you past every wall fear ever built.",
     color: "#E8754A", bg: "rgba(232,117,74,0.08)", border: "rgba(232,117,74,0.35)", symbol: "\u21AF",
     nudges: ["Aries here. What is the one bold move you have been putting off? Today is the day.", "Fear is just excitement without permission. Give yourself permission today.", "The version of you that you dream about — what would they do this morning?", "Courage is not the absence of fear. It is moving despite it. Move today.", "You are one decision away from a completely different life. What is that decision?"],
+    accountability: ["ARIES HERE. Your Day tasks are waiting and so is the version of you that actually gets things done. MOVE.", "Fear is what stops people from completing what they start. Are you going to let it stop you today?", "Aries accountability check: bold people do what they said they would do. Be bold. Finish your Day."],
+    midday: ["Aries midday fire check — are you burning or are you cooling off? Reignite if you have to.", "Halfway through. The fearless do not slow down at the midpoint — they accelerate. You still fearless?"],
+    closing: ["Day closing and Aries wants to know: did you attack your goals today or let them attack you?", "Before you rest, warrior — account for your battle. What did you conquer today?"],
   },
   {
     id: "intuitive", name: "Mary", title: "The Intuitive", role: "Spirit & Instinct",
     desc: "Mary speaks from the deepest place — the quiet voice inside you that already knows.",
     color: "#9B72CF", bg: "rgba(155,114,207,0.08)", border: "rgba(155,114,207,0.35)", symbol: "\u25C9",
     nudges: ["Mary is with you. Before the day begins — what does your gut already know?", "Your intuition has never truly failed you. What is it whispering right now?", "Take three deep breaths. What do you already know that you have been afraid to trust?", "You came here for a reason. Your spirit knows the path. Trust it today.", "What does your soul need to hear most this morning? Say it to yourself."],
+    accountability: ["Mary gently nudging you. Your soul knows what it committed to today. Are you listening?", "Your spirit set intentions this morning. Your actions today either honor them or ignore them. Which is it?", "A quiet reminder from Mary — your Day tasks are not just tasks. They are promises to yourself."],
+    midday: ["Mary midday whisper: your intuition knows if you are on track. Listen to it right now.", "Halfway through your Day. Your spirit is asking — are you moving in alignment with what you intended?"],
+    closing: ["Day closing. Mary asks you to sit quietly for a moment. Did your actions today match your intentions?", "Before you rest — your soul is taking inventory. What did you actually do with today?"],
   },
 ];
 
@@ -85,7 +107,6 @@ YOUR RULES FOR GROWTH MODE:
 7. Keep responses warm, motivating, and specific to what they share.`;
   }
 
-  // Default: DECIDE mode
   return `Your name is ${c.name}. You are ${c.title} in the Day Masters app — a lifelong decision-making companion.
 
 ${personalities[c.id]}
@@ -140,6 +161,12 @@ const HISTORY = [
   { id: 2, type: "Talk",     q: "I still love her but I do not know what to do.",    status: "pending", date: "Mar 23", framework: "talk" },
   { id: 3, type: "Grow",     q: "Morning check-in with Aries",                        status: "complete", date: "Mar 22", framework: "grow" },
   { id: 4, type: "Decision", q: "Should I move to a new city for a fresh start?",    status: "complete", date: "Mar 19", framework: "decide" },
+];
+
+const NOTIFICATION_TYPES = [
+  { id: "morning", icon: "☀️", label: "Morning Accountability", desc: "Your companion kicks off your Day and locks you into your commitments." },
+  { id: "midday", icon: "⚡", label: "Midday Check-In", desc: "Halfway through — are you on track? Your guide pulls you back if you drifted." },
+  { id: "closing", icon: "🌙", label: "Day Closing Reflection", desc: "End-of-day accountability. Did you honor what you said you would do?" },
 ];
 
 const css = `
@@ -363,6 +390,75 @@ html,body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;o
 .time-opts{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:32px}
 .time-opt{background:var(--s1);border:1px solid var(--border);padding:10px 16px;border-radius:2px;font-family:'Jost',sans-serif;font-size:13px;cursor:pointer;transition:all .2s;color:var(--dim)}
 .time-opt.sel{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.08)}
+
+/* LOGO */
+.dm-logo{width:180px;height:180px;object-fit:contain;margin-bottom:32px;filter:drop-shadow(0 0 32px rgba(155,114,207,.7)) drop-shadow(0 0 64px rgba(201,68,76,.3));animation:breathe 5s ease-in-out infinite;cursor:pointer;user-select:none;-webkit-user-select:none}
+.logo-tap-hint{font-size:9px;letter-spacing:2px;color:rgba(155,114,207,.4);text-transform:uppercase;margin-top:-20px;margin-bottom:28px;text-align:center;transition:opacity .3s}
+
+/* ADMIN PANEL OVERLAY */
+.admin-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;animation:fadeUp .25s ease}
+.admin-panel{background:var(--s1);border:1px solid rgba(155,114,207,.4);border-radius:4px;padding:28px 24px;width:100%;max-width:360px;position:relative}
+.admin-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(155,114,207,.8),transparent)}
+.admin-eyebrow{font-size:9px;letter-spacing:4px;color:#9B72CF;text-transform:uppercase;margin-bottom:6px}
+.admin-title{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;margin-bottom:4px}
+.admin-sub{font-size:12px;color:var(--dim);margin-bottom:24px;font-weight:300}
+.admin-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:2px;padding:13px 16px;color:var(--text);font-family:'Jost',sans-serif;font-size:15px;letter-spacing:4px;text-transform:uppercase;outline:none;transition:border-color .25s;text-align:center}
+.admin-input:focus{border-color:rgba(155,114,207,.5)}
+.admin-input::placeholder{letter-spacing:2px;text-transform:none;font-size:13px}
+.admin-error{font-size:12px;color:#E07A8A;text-align:center;margin-top:10px;min-height:18px}
+.admin-close{position:absolute;top:16px;right:16px;background:none;border:none;color:var(--dim);font-size:20px;cursor:pointer;transition:color .2s;line-height:1}
+.admin-close:hover{color:var(--text)}
+.admin-unlocked{text-align:center;padding:8px 0}
+.admin-unlocked-icon{font-size:40px;margin-bottom:12px}
+.admin-unlocked-title{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:#9B72CF;margin-bottom:8px}
+.admin-tier-btns{display:flex;flex-direction:column;gap:10px;margin-top:20px}
+.tier-btn{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:13px 16px;border-radius:2px;font-family:'Jost',sans-serif;font-size:13px;cursor:pointer;transition:all .2s;text-align:left;display:flex;align-items:center;justify-content:space-between}
+.tier-btn:hover{border-color:rgba(155,114,207,.4);background:rgba(155,114,207,.05)}
+.tier-btn.active{border-color:#9B72CF;background:rgba(155,114,207,.1);color:#9B72CF}
+.tier-badge{font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:3px 8px;border-radius:10px;background:rgba(155,114,207,.2);color:#9B72CF}
+.feedback-count{background:rgba(155,114,207,.15);border:1px solid rgba(155,114,207,.3);border-radius:2px;padding:10px 14px;margin-top:16px}
+.feedback-count-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#9B72CF;margin-bottom:6px}
+.feedback-count-num{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:600;color:var(--text)}
+
+/* FEEDBACK MODAL */
+.feedback-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:999;display:flex;align-items:flex-end;justify-content:center;animation:fadeUp .2s ease}
+.feedback-modal{background:var(--s1);border:1px solid var(--border);border-radius:4px 4px 0 0;padding:28px 24px 40px;width:100%;max-width:420px;position:relative}
+.feedback-modal::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.feedback-title{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:500;margin-bottom:6px}
+.feedback-sub{font-size:13px;color:var(--dim);font-weight:300;margin-bottom:24px}
+.feedback-rating{display:flex;gap:16px;margin-bottom:20px}
+.rating-btn{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:all .25s}
+.rating-btn:hover{transform:translateY(-2px)}
+.rating-btn.up.sel{border-color:rgba(91,173,138,.6);background:rgba(91,173,138,.08)}
+.rating-btn.down.sel{border-color:rgba(224,122,138,.6);background:rgba(224,122,138,.08)}
+.rating-icon{font-size:28px}
+.rating-label{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--dim)}
+.feedback-textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:2px;padding:13px 16px;color:var(--text);font-family:'Jost',sans-serif;font-size:14px;font-weight:300;outline:none;resize:none;min-height:90px;line-height:1.6;transition:border-color .25s;margin-bottom:16px}
+.feedback-textarea::placeholder{color:var(--dim)}
+.feedback-textarea:focus{border-color:rgba(201,168,76,.35)}
+.feedback-success{text-align:center;padding:20px 0}
+.feedback-success-icon{font-size:36px;margin-bottom:12px}
+.feedback-success-title{font-family:'Cormorant Garamond',serif;font-size:20px;margin-bottom:6px}
+.feedback-success-sub{font-size:13px;color:var(--dim);font-weight:300}
+
+/* FEEDBACK TRIGGER BUTTON */
+.feedback-trigger{position:fixed;bottom:90px;right:16px;width:44px;height:44px;border-radius:50%;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);color:var(--gold);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:90;transition:all .2s;max-width:420px}
+.feedback-trigger:hover{background:rgba(201,168,76,.2);transform:scale(1.1)}
+
+/* PERMISSION BANNER */
+.perm-banner{background:rgba(91,155,213,0.08);border:1px solid rgba(91,155,213,0.25);border-radius:3px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:flex-start;gap:12px}
+.perm-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.perm-body{flex:1}
+.perm-title{font-size:12px;font-weight:500;margin-bottom:3px;color:#5B9BD5}
+.perm-desc{font-size:11px;color:var(--dim);font-weight:300;line-height:1.5}
+
+/* ACCOUNTABILITY BANNER ON DASH */
+.acct-banner{margin:16px 24px 0;background:rgba(232,117,74,0.06);border:1px solid rgba(232,117,74,0.2);border-radius:3px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .2s}
+.acct-banner:hover{border-color:rgba(232,117,74,0.4)}
+.acct-dot{width:8px;height:8px;border-radius:50%;background:#E8754A;box-shadow:0 0 8px rgba(232,117,74,.6);flex-shrink:0;animation:acctpulse 2s ease-in-out infinite}
+@keyframes acctpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(1.3)}}
+.acct-text{flex:1;font-size:13px;font-weight:300;color:var(--text);line-height:1.5}
+.acct-name{font-family:'Cormorant Garamond',serif;font-size:11px;color:#E8754A;margin-bottom:2px;letter-spacing:1px;text-transform:uppercase}
 `;
 
 const HABIT_DEFAULTS = [
@@ -435,6 +531,61 @@ function NudgeCard({ companion, onRespond, onDismiss }) {
   );
 }
 
+// ─── NOTIFICATION ENGINE ───────────────────────────────────────────────────────
+
+async function requestNotificationPermission() {
+  if (!("Notification" in window)) return "unsupported";
+  if (Notification.permission === "granted") return "granted";
+  if (Notification.permission === "denied") return "denied";
+  const result = await Notification.requestPermission();
+  return result;
+}
+
+function parseTime(timeStr) {
+  // e.g. "6:00 AM", "12:00 PM"
+  const [timePart, period] = timeStr.split(" ");
+  const [hourStr, minStr] = timePart.split(":");
+  let hour = parseInt(hourStr);
+  const min = parseInt(minStr);
+  if (period === "PM" && hour !== 12) hour += 12;
+  if (period === "AM" && hour === 12) hour = 0;
+  return { hour, min };
+}
+
+function getDelayUntil(hour, min) {
+  const now = new Date();
+  const target = new Date();
+  target.setHours(hour, min, 0, 0);
+  if (target <= now) target.setDate(target.getDate() + 1);
+  return target.getTime() - now.getTime();
+}
+
+function fireNotification(companion, type, habitsDone, habitsTotal) {
+  if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+  const pool = companion[type] || companion.nudges;
+  const msg = pool[Math.floor(Math.random() * pool.length)];
+
+  let body = msg;
+  if (type === "midday" || type === "closing") {
+    const remaining = habitsTotal - habitsDone;
+    if (remaining > 0) {
+      body += ` (${remaining} habit${remaining > 1 ? "s" : ""} still open today)`;
+    } else {
+      body += " All habits complete — keep that energy.";
+    }
+  }
+
+  new Notification(`Day Masters — ${companion.name}`, {
+    body,
+    icon: "/favicon.ico",
+    badge: "/favicon.ico",
+    tag: `daymasters-${type}`,
+  });
+}
+
+// ─── MAIN APP ──────────────────────────────────────────────────────────────────
+
 export default function DayMasters() {
   const [screen, setScreen] = useState("splash");
   const [assessIdx, setAssessIdx] = useState(0);
@@ -453,14 +604,156 @@ export default function DayMasters() {
   const [streaming, setStreaming] = useState(false);
   const [lastPrompt, setLastPrompt] = useState(null);
   const [nudgeEnabled, setNudgeEnabled] = useState(false);
-  const [nudgeTypes, setNudgeTypes] = useState([]);
+  const [nudgeTypes, setNudgeTypes] = useState(["morning", "midday", "closing"]);
   const [nudgeTime, setNudgeTime] = useState("6:00 AM");
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
+  const [notifPermission, setNotifPermission] = useState(
+    typeof Notification !== "undefined" ? Notification.permission : "unsupported"
+  );
+  const [activeAccountabilityMsg, setActiveAccountabilityMsg] = useState(null);
+  const [scheduledTimers, setScheduledTimers] = useState([]);
+
+  // Admin Easter egg
+  const [logoTaps, setLogoTaps] = useState(0);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [adminUnlocked, setAdminUnlocked] = useState(false);
+  const [adminKeyInput, setAdminKeyInput] = useState("");
+  const [adminKeyError, setAdminKeyError] = useState("");
+  const [activeTier, setActiveTier] = useState("free"); // "free" | "pro"
+  const logoTapTimer = useRef(null);
+
+  // Feedback system
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState(null); // "up" | "down"
+  const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [feedbackList, setFeedbackList] = useState([]);
+
   const msgsRef = useRef(null);
+  const habitsRef = useRef(habits);
+
+  // Keep habitsRef in sync so notification callbacks always see fresh habit data
+  useEffect(() => { habitsRef.current = habits; }, [habits]);
 
   useEffect(() => {
     if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight;
   }, [messages, thinking]);
+
+  // ── Schedule notifications whenever settings change ──────────────────────────
+  useEffect(() => {
+    // Clear existing timers
+    scheduledTimers.forEach(t => clearTimeout(t));
+
+    if (!nudgeEnabled || !companion || notifPermission !== "granted") return;
+
+    const newTimers = [];
+
+    // Morning nudge at user-selected time
+    if (nudgeTypes.includes("morning")) {
+      const { hour, min } = parseTime(nudgeTime);
+      const delay = getDelayUntil(hour, min);
+      const t = setTimeout(() => {
+        const h = habitsRef.current;
+        fireNotification(companion, "morning", h.filter(x => x.done).length, h.length);
+        setActiveAccountabilityMsg({
+          type: "morning",
+          msg: companion.accountability[Math.floor(Math.random() * companion.accountability.length)],
+          companion,
+        });
+      }, delay);
+      newTimers.push(t);
+    }
+
+    // Midday check-in at noon
+    if (nudgeTypes.includes("midday")) {
+      const delay = getDelayUntil(12, 0);
+      const t = setTimeout(() => {
+        const h = habitsRef.current;
+        fireNotification(companion, "midday", h.filter(x => x.done).length, h.length);
+        setActiveAccountabilityMsg({
+          type: "midday",
+          msg: companion.midday[Math.floor(Math.random() * companion.midday.length)],
+          companion,
+        });
+      }, delay);
+      newTimers.push(t);
+    }
+
+    // Day closing at 8 PM
+    if (nudgeTypes.includes("closing")) {
+      const delay = getDelayUntil(20, 0);
+      const t = setTimeout(() => {
+        const h = habitsRef.current;
+        fireNotification(companion, "closing", h.filter(x => x.done).length, h.length);
+        setActiveAccountabilityMsg({
+          type: "closing",
+          msg: companion.closing[Math.floor(Math.random() * companion.closing.length)],
+          companion,
+        });
+      }, delay);
+      newTimers.push(t);
+    }
+
+    setScheduledTimers(newTimers);
+    return () => newTimers.forEach(t => clearTimeout(t));
+  }, [nudgeEnabled, companion, nudgeTypes, nudgeTime, notifPermission]);
+
+  // ── Easter egg: tap logo 5x to open admin panel ───────────────────────────
+  function handleLogoTap() {
+    const next = logoTaps + 1;
+    setLogoTaps(next);
+    if (logoTapTimer.current) clearTimeout(logoTapTimer.current);
+    if (next >= LOGO_TAP_COUNT) {
+      setLogoTaps(0);
+      setShowAdminPanel(true);
+      setAdminKeyInput("");
+      setAdminKeyError("");
+    } else {
+      logoTapTimer.current = setTimeout(() => setLogoTaps(0), 2000);
+    }
+  }
+
+  function submitAdminKey() {
+    if (adminKeyInput.toUpperCase() === ADMIN_KEY) {
+      setAdminUnlocked(true);
+      setAdminKeyError("");
+    } else {
+      setAdminKeyError("Invalid key. Try again.");
+      setAdminKeyInput("");
+    }
+  }
+
+  // ── Feedback ──────────────────────────────────────────────────────────────
+  function submitFeedback() {
+    if (!feedbackRating) return;
+    const entry = {
+      id: Date.now(),
+      rating: feedbackRating,
+      text: feedbackText,
+      date: new Date().toLocaleDateString(),
+      companion: companion?.name || "None",
+    };
+    setFeedbackList(prev => [entry, ...prev]);
+    setFeedbackSubmitted(true);
+    setTimeout(() => {
+      setShowFeedback(false);
+      setFeedbackSubmitted(false);
+      setFeedbackRating(null);
+      setFeedbackText("");
+    }, 2200);
+  }
+
+  async function handleEnableNotifications() {
+    const perm = await requestNotificationPermission();
+    setNotifPermission(perm);
+    if (perm === "granted") setNudgeEnabled(true);
+  }
+
+  function toggleNudgeType(id) {
+    setNudgeTypes(prev =>
+      prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]
+    );
+  }
 
   function pickOpt(opt) {
     const updated = { ...answers, [assessIdx]: opt };
@@ -574,7 +867,6 @@ export default function DayMasters() {
 
   async function startTalk(selectedCompanion) {
     const c = selectedCompanion || companion;
-    const voice = getVoice(c, "talk");
     const intro = c.name + " is here with you.\n\nNo agenda. No decisions needed. Just talk. What is on your mind today?";
     setChatMode("talk");
     setMessages([{ role: "ai", text: intro }]);
@@ -620,7 +912,6 @@ export default function DayMasters() {
   const activeComp = chatMode === "talk" && talkCompanion ? talkCompanion : companion;
   const lastMsg = messages[messages.length - 1];
   const showRetry = !thinking && !streaming && lastMsg?.text?.includes("hit a snag");
-
   const doneHabits = habits.filter(h => h.done).length;
 
   return (
@@ -632,10 +923,16 @@ export default function DayMasters() {
         {screen === "splash" && (
           <div className="splash">
             <div className="aura" />
-            <div className="orb-wrap">
-              <div className="orb-ring" /><div className="orb-ring" /><div className="orb-ring" />
-              <div className="orb-core"><span className="orb-glyph">&#9672;</span></div>
-            </div>
+            <img
+              src="/dayimage.png"
+              alt="Day Masters"
+              className="dm-logo"
+              onClick={handleLogoTap}
+              draggable={false}
+            />
+            {logoTaps > 0 && logoTaps < LOGO_TAP_COUNT && (
+              <div className="logo-tap-hint">{LOGO_TAP_COUNT - logoTaps} more...</div>
+            )}
             <div className="app-name">Day Masters</div>
             <div className="app-tag">The Ultimate Human Compass</div>
             <p className="splash-copy">Every decision. Every conversation. Every step forward. Your companions are here.</p>
@@ -687,28 +984,106 @@ export default function DayMasters() {
           </div>
         )}
 
-        {/* NUDGE SETUP */}
+        {/* NUDGE SETUP — REBUILT WITH ACCOUNTABILITY */}
         {screen === "nudge-setup" && (
           <div className="nudge-setup">
-            <div className="eyebrow">Daily Nudges</div>
-            <div className="heading">{companion?.name} Can Reach Out</div>
-            <div className="sub">Your companion can nudge you toward better habits and accountability unprompted — like a real friend who checks in.</div>
-            <div style={{ fontSize: 13, color: "var(--dim)", marginBottom: 20, fontWeight: 300 }}>Would you like {companion?.name} to reach out daily?</div>
-            <div style={{ display: "flex", gap: 12, marginBottom: 28 }}>
-              <button className={`opt ${nudgeEnabled ? "sel" : ""}`} style={{ flex: 1, textAlign: "center" }} onClick={() => setNudgeEnabled(true)}>Yes, reach out</button>
-              <button className={`opt ${!nudgeEnabled ? "sel" : ""}`} style={{ flex: 1, textAlign: "center" }} onClick={() => setNudgeEnabled(false)}>Not right now</button>
+            <div className="eyebrow">Accountability</div>
+            <div className="heading">{companion?.name} Can Hold You To It</div>
+            <div className="sub">
+              Your companion will reach out during your Day to make sure you are doing what you said you would do — not just at a set time, but at the moments that matter most.
             </div>
+
+            {/* Permission state */}
+            {notifPermission === "unsupported" && (
+              <div className="perm-banner">
+                <div className="perm-icon">⚠️</div>
+                <div className="perm-body">
+                  <div className="perm-title">Notifications Not Supported</div>
+                  <div className="perm-desc">Your browser does not support push notifications. In-app nudges will still appear when you open Day Masters.</div>
+                </div>
+              </div>
+            )}
+
+            {notifPermission === "denied" && (
+              <div className="perm-banner" style={{ background: "rgba(232,117,74,0.06)", borderColor: "rgba(232,117,74,0.25)" }}>
+                <div className="perm-icon">🔒</div>
+                <div className="perm-body">
+                  <div className="perm-title" style={{ color: "#E8754A" }}>Notifications Blocked</div>
+                  <div className="perm-desc">Enable notifications in your browser settings so {companion?.name} can reach you outside the app.</div>
+                </div>
+              </div>
+            )}
+
+            <div style={{ fontSize: 13, color: "var(--dim)", marginBottom: 16, fontWeight: 300 }}>
+              Should {companion?.name} hold you accountable throughout your Day?
+            </div>
+
+            <div style={{ display: "flex", gap: 12, marginBottom: 28 }}>
+              <button
+                className={`opt ${nudgeEnabled ? "sel" : ""}`}
+                style={{ flex: 1, textAlign: "center" }}
+                onClick={async () => {
+                  if (notifPermission !== "granted") {
+                    await handleEnableNotifications();
+                  } else {
+                    setNudgeEnabled(true);
+                  }
+                }}
+              >
+                Yes, hold me to it
+              </button>
+              <button
+                className={`opt ${!nudgeEnabled ? "sel" : ""}`}
+                style={{ flex: 1, textAlign: "center" }}
+                onClick={() => setNudgeEnabled(false)}
+              >
+                Not right now
+              </button>
+            </div>
+
             {nudgeEnabled && (
               <>
-                <div className="time-label">What time should {companion?.name} reach out?</div>
-                <div className="time-opts">
-                  {["5:00 AM", "6:00 AM", "7:00 AM", "8:00 AM", "9:00 AM", "12:00 PM"].map(t => (
-                    <button key={t} className={`time-opt ${nudgeTime === t ? "sel" : ""}`} onClick={() => setNudgeTime(t)}>{t}</button>
+                {/* Notification Type Selection */}
+                <div className="time-label" style={{ marginBottom: 14 }}>When should {companion?.name} reach out?</div>
+                <div className="nudge-types">
+                  {NOTIFICATION_TYPES.map(nt => (
+                    <div
+                      key={nt.id}
+                      className={`nudge-type-card ${nudgeTypes.includes(nt.id) ? "sel" : ""}`}
+                      onClick={() => toggleNudgeType(nt.id)}
+                    >
+                      <div className="nt-icon">{nt.icon}</div>
+                      <div className="nt-body">
+                        <div className="nt-label">{nt.label}</div>
+                        <div className="nt-desc">{nt.desc}</div>
+                      </div>
+                      <div className="nt-check">{nudgeTypes.includes(nt.id) ? "✓" : ""}</div>
+                    </div>
                   ))}
+                </div>
+
+                {/* Morning time picker — only shown if morning is selected */}
+                {nudgeTypes.includes("morning") && (
+                  <>
+                    <div className="time-label" style={{ marginTop: 24 }}>Morning start time</div>
+                    <div className="time-opts">
+                      {["5:00 AM", "6:00 AM", "7:00 AM", "8:00 AM", "9:00 AM", "10:00 AM"].map(t => (
+                        <button key={t} className={`time-opt ${nudgeTime === t ? "sel" : ""}`} onClick={() => setNudgeTime(t)}>{t}</button>
+                      ))}
+                    </div>
+                  </>
+                )}
+
+                <div style={{ fontSize: 11, color: "var(--dim)", lineHeight: 1.6, marginBottom: 8, fontWeight: 300 }}>
+                  {nudgeTypes.includes("midday") && "Midday check-in fires at 12:00 PM. "}
+                  {nudgeTypes.includes("closing") && "Day closing fires at 8:00 PM."}
                 </div>
               </>
             )}
-            <button className="btn-full" style={{ marginTop: 8 }} onClick={() => setScreen("dash")}>Enter Day Masters</button>
+
+            <button className="btn-full" style={{ marginTop: 8 }} onClick={() => setScreen("dash")}>
+              Enter Day Masters
+            </button>
           </div>
         )}
 
@@ -733,6 +1108,25 @@ export default function DayMasters() {
 
             {nav === "home" && (
               <>
+                {/* In-app accountability banner when notification fires */}
+                {activeAccountabilityMsg && (
+                  <div
+                    className="acct-banner"
+                    onClick={() => {
+                      setActiveAccountabilityMsg(null);
+                      setChatMode("grow");
+                      startGrow();
+                    }}
+                  >
+                    <div className="acct-dot" />
+                    <div style={{ flex: 1 }}>
+                      <div className="acct-name">{activeAccountabilityMsg.companion.name} — Accountability</div>
+                      <div className="acct-text">{activeAccountabilityMsg.msg}</div>
+                    </div>
+                    <div style={{ color: "var(--dim)", fontSize: 16 }}>›</div>
+                  </div>
+                )}
+
                 {showNudge && (
                   <NudgeCard
                     companion={companion}
@@ -743,8 +1137,6 @@ export default function DayMasters() {
 
                 {/* THREE FRAMEWORKS */}
                 <div className="frameworks">
-
-                  {/* DECIDE */}
                   <div className="fw-card decide" onClick={startDecide}>
                     <div className="fw-top">
                       <span className="fw-icon">&#9654;</span>
@@ -754,7 +1146,6 @@ export default function DayMasters() {
                     <div className="fw-action">Build my decision frame &rarr;</div>
                   </div>
 
-                  {/* TALK */}
                   <div className="fw-card talk" onClick={() => setScreen("talk-select")}>
                     <div className="fw-top">
                       <span className="fw-icon">&#9825;</span>
@@ -764,7 +1155,6 @@ export default function DayMasters() {
                     <div className="fw-action">Open a conversation &rarr;</div>
                   </div>
 
-                  {/* GROW */}
                   <div className="fw-card grow" onClick={() => setScreen("grow-dash")}>
                     <div className="fw-top">
                       <span className="fw-icon">&#9651;</span>
@@ -773,7 +1163,6 @@ export default function DayMasters() {
                     <div className="fw-sub">Your companion checks in on your habits, commitments, and progress. {doneHabits} of {habits.length} habits done today.</div>
                     <div className="fw-action">Check my progress &rarr;</div>
                   </div>
-
                 </div>
 
                 <div className="slabel">Recent Sessions</div>
@@ -836,7 +1225,7 @@ export default function DayMasters() {
                 <div className="heading" style={{ marginBottom: 0 }}>Who do you want to talk to?</div>
               </div>
             </div>
-            <div className="sub">Pick the companion whose voice you need most right now. Or just start with your primary guide.</div>
+            <div className="sub">Pick the companion whose voice you need most right now.</div>
             <div className="companion-pick">
               {COMPANIONS.map(c => (
                 <div key={c.id} className={`cpick ${talkCompanion?.id === c.id ? "sel" : ""}`}
@@ -987,7 +1376,133 @@ export default function DayMasters() {
           </div>
         )}
 
+        {/* ADMIN PANEL OVERLAY — tap logo 5x to access */}
+        {showAdminPanel && (
+          <div className="admin-overlay" onClick={e => { if (e.target === e.currentTarget) setShowAdminPanel(false); }}>
+            <div className="admin-panel">
+              <button className="admin-close" onClick={() => setShowAdminPanel(false)}>✕</button>
+              {!adminUnlocked ? (
+                <>
+                  <div className="admin-eyebrow">Throne Tech</div>
+                  <div className="admin-title">Admin Access</div>
+                  <div className="admin-sub">Enter your administrative key to unlock developer mode.</div>
+                  <input
+                    className="admin-input"
+                    type="password"
+                    placeholder="Enter admin key"
+                    value={adminKeyInput}
+                    onChange={e => setAdminKeyInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") submitAdminKey(); }}
+                    autoFocus
+                  />
+                  <div className="admin-error">{adminKeyError}</div>
+                  <button className="btn-full" style={{ marginTop: 16 }} disabled={!adminKeyInput} onClick={submitAdminKey}>
+                    Unlock
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="admin-unlocked">
+                    <div className="admin-unlocked-icon">👑</div>
+                    <div className="admin-unlocked-title">Developer Mode Active</div>
+                    <div style={{ fontSize: 12, color: "var(--dim)", fontWeight: 300 }}>
+                      Simulate subscription tiers and view user feedback.
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: 11, letterSpacing: 3, textTransform: "uppercase", color: "var(--dim)", margin: "20px 0 10px" }}>
+                    Active Tier
+                  </div>
+                  <div className="admin-tier-btns">
+                    <button className={`tier-btn ${activeTier === "free" ? "active" : ""}`} onClick={() => setActiveTier("free")}>
+                      <span>Free Plan</span>
+                      {activeTier === "free" && <span className="tier-badge">Active</span>}
+                    </button>
+                    <button className={`tier-btn ${activeTier === "pro" ? "active" : ""}`} onClick={() => setActiveTier("pro")}>
+                      <span>Pro Plan — Full Access</span>
+                      {activeTier === "pro" && <span className="tier-badge">Active</span>}
+                    </button>
+                  </div>
+
+                  <div className="feedback-count" style={{ marginTop: 20 }}>
+                    <div className="feedback-count-label">User Feedback Submitted</div>
+                    <div className="feedback-count-num">{feedbackList.length}</div>
+                    {feedbackList.length > 0 && (
+                      <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                        {feedbackList.slice(0, 5).map(f => (
+                          <div key={f.id} style={{ fontSize: 12, color: "var(--dim)", borderTop: "1px solid var(--border)", paddingTop: 8, display: "flex", gap: 8 }}>
+                            <span>{f.rating === "up" ? "👍" : "👎"}</span>
+                            <div>
+                              <div style={{ fontSize: 10, color: "var(--gold)", marginBottom: 2 }}>{f.date} · {f.companion}</div>
+                              <div>{f.text || "No comment"}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <button className="btn-ghost" style={{ width: "100%", marginTop: 16 }} onClick={() => { setAdminUnlocked(false); setShowAdminPanel(false); }}>
+                    Exit Admin Mode
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* FEEDBACK FLOATING BUTTON — visible on dashboard */}
+        {screen === "dash" && !showFeedback && !showAdminPanel && (
+          <button className="feedback-trigger" onClick={() => setShowFeedback(true)} title="Share feedback">
+            💬
+          </button>
+        )}
+
+        {/* FEEDBACK MODAL */}
+        {showFeedback && (
+          <div className="feedback-overlay" onClick={e => { if (e.target === e.currentTarget) setShowFeedback(false); }}>
+            <div className="feedback-modal">
+              {!feedbackSubmitted ? (
+                <>
+                  <div className="feedback-title">How is Day Masters serving you?</div>
+                  <div className="feedback-sub">Your honesty helps us build something better. All feedback goes straight to the team.</div>
+                  <div className="feedback-rating">
+                    <button className={`rating-btn up ${feedbackRating === "up" ? "sel" : ""}`} onClick={() => setFeedbackRating("up")}>
+                      <div className="rating-icon">👍</div>
+                      <div className="rating-label">It's working</div>
+                    </button>
+                    <button className={`rating-btn down ${feedbackRating === "down" ? "sel" : ""}`} onClick={() => setFeedbackRating("down")}>
+                      <div className="rating-icon">👎</div>
+                      <div className="rating-label">Needs work</div>
+                    </button>
+                  </div>
+                  <textarea
+                    className="feedback-textarea"
+                    placeholder="Tell us more — what's working, what's missing, what would make this indispensable to you..."
+                    value={feedbackText}
+                    onChange={e => setFeedbackText(e.target.value)}
+                    rows={3}
+                  />
+                  <button className="btn-full" style={{ marginTop: 0 }} disabled={!feedbackRating} onClick={submitFeedback}>
+                    Submit Feedback
+                  </button>
+                  <button className="btn-ghost" style={{ width: "100%", marginTop: 10 }} onClick={() => setShowFeedback(false)}>
+                    Not Now
+                  </button>
+                </>
+              ) : (
+                <div className="feedback-success">
+                  <div className="feedback-success-icon">✨</div>
+                  <div className="feedback-success-title">Thank you. Seriously.</div>
+                  <div className="feedback-success-sub">Your voice shapes what Day Masters becomes. We heard you.</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
       </div>
     </>
   );
 }
+
