@@ -1,5 +1,9 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 
+// ─── ADMIN CONFIG ─────────────────────────────────────────────────────────────
+const ADMIN_KEY = "DMTHRONE25"; // Change this to whatever you want your secret key to be
+const LOGO_TAP_COUNT = 5;       // How many times to tap the logo to unlock admin panel
+
 const COMPANIONS = [
   {
     id: "collective", name: "Solar", title: "The Collective", role: "The Singularity",
@@ -387,6 +391,60 @@ html,body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;o
 .time-opt{background:var(--s1);border:1px solid var(--border);padding:10px 16px;border-radius:2px;font-family:'Jost',sans-serif;font-size:13px;cursor:pointer;transition:all .2s;color:var(--dim)}
 .time-opt.sel{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.08)}
 
+/* LOGO */
+.dm-logo{width:180px;height:180px;object-fit:contain;margin-bottom:32px;filter:drop-shadow(0 0 32px rgba(155,114,207,.7)) drop-shadow(0 0 64px rgba(201,68,76,.3));animation:breathe 5s ease-in-out infinite;cursor:pointer;user-select:none;-webkit-user-select:none}
+.logo-tap-hint{font-size:9px;letter-spacing:2px;color:rgba(155,114,207,.4);text-transform:uppercase;margin-top:-20px;margin-bottom:28px;text-align:center;transition:opacity .3s}
+
+/* ADMIN PANEL OVERLAY */
+.admin-overlay{position:fixed;inset:0;background:rgba(0,0,0,.92);z-index:1000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;animation:fadeUp .25s ease}
+.admin-panel{background:var(--s1);border:1px solid rgba(155,114,207,.4);border-radius:4px;padding:28px 24px;width:100%;max-width:360px;position:relative}
+.admin-panel::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(155,114,207,.8),transparent)}
+.admin-eyebrow{font-size:9px;letter-spacing:4px;color:#9B72CF;text-transform:uppercase;margin-bottom:6px}
+.admin-title{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:600;margin-bottom:4px}
+.admin-sub{font-size:12px;color:var(--dim);margin-bottom:24px;font-weight:300}
+.admin-input{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:2px;padding:13px 16px;color:var(--text);font-family:'Jost',sans-serif;font-size:15px;letter-spacing:4px;text-transform:uppercase;outline:none;transition:border-color .25s;text-align:center}
+.admin-input:focus{border-color:rgba(155,114,207,.5)}
+.admin-input::placeholder{letter-spacing:2px;text-transform:none;font-size:13px}
+.admin-error{font-size:12px;color:#E07A8A;text-align:center;margin-top:10px;min-height:18px}
+.admin-close{position:absolute;top:16px;right:16px;background:none;border:none;color:var(--dim);font-size:20px;cursor:pointer;transition:color .2s;line-height:1}
+.admin-close:hover{color:var(--text)}
+.admin-unlocked{text-align:center;padding:8px 0}
+.admin-unlocked-icon{font-size:40px;margin-bottom:12px}
+.admin-unlocked-title{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:#9B72CF;margin-bottom:8px}
+.admin-tier-btns{display:flex;flex-direction:column;gap:10px;margin-top:20px}
+.tier-btn{background:var(--bg);border:1px solid var(--border);color:var(--text);padding:13px 16px;border-radius:2px;font-family:'Jost',sans-serif;font-size:13px;cursor:pointer;transition:all .2s;text-align:left;display:flex;align-items:center;justify-content:space-between}
+.tier-btn:hover{border-color:rgba(155,114,207,.4);background:rgba(155,114,207,.05)}
+.tier-btn.active{border-color:#9B72CF;background:rgba(155,114,207,.1);color:#9B72CF}
+.tier-badge{font-size:9px;letter-spacing:2px;text-transform:uppercase;padding:3px 8px;border-radius:10px;background:rgba(155,114,207,.2);color:#9B72CF}
+.feedback-count{background:rgba(155,114,207,.15);border:1px solid rgba(155,114,207,.3);border-radius:2px;padding:10px 14px;margin-top:16px}
+.feedback-count-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:#9B72CF;margin-bottom:6px}
+.feedback-count-num{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:600;color:var(--text)}
+
+/* FEEDBACK MODAL */
+.feedback-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:999;display:flex;align-items:flex-end;justify-content:center;animation:fadeUp .2s ease}
+.feedback-modal{background:var(--s1);border:1px solid var(--border);border-radius:4px 4px 0 0;padding:28px 24px 40px;width:100%;max-width:420px;position:relative}
+.feedback-modal::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.feedback-title{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:500;margin-bottom:6px}
+.feedback-sub{font-size:13px;color:var(--dim);font-weight:300;margin-bottom:24px}
+.feedback-rating{display:flex;gap:16px;margin-bottom:20px}
+.rating-btn{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:3px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;transition:all .25s}
+.rating-btn:hover{transform:translateY(-2px)}
+.rating-btn.up.sel{border-color:rgba(91,173,138,.6);background:rgba(91,173,138,.08)}
+.rating-btn.down.sel{border-color:rgba(224,122,138,.6);background:rgba(224,122,138,.08)}
+.rating-icon{font-size:28px}
+.rating-label{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--dim)}
+.feedback-textarea{width:100%;background:var(--bg);border:1px solid var(--border);border-radius:2px;padding:13px 16px;color:var(--text);font-family:'Jost',sans-serif;font-size:14px;font-weight:300;outline:none;resize:none;min-height:90px;line-height:1.6;transition:border-color .25s;margin-bottom:16px}
+.feedback-textarea::placeholder{color:var(--dim)}
+.feedback-textarea:focus{border-color:rgba(201,168,76,.35)}
+.feedback-success{text-align:center;padding:20px 0}
+.feedback-success-icon{font-size:36px;margin-bottom:12px}
+.feedback-success-title{font-family:'Cormorant Garamond',serif;font-size:20px;margin-bottom:6px}
+.feedback-success-sub{font-size:13px;color:var(--dim);font-weight:300}
+
+/* FEEDBACK TRIGGER BUTTON */
+.feedback-trigger{position:fixed;bottom:90px;right:16px;width:44px;height:44px;border-radius:50%;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);color:var(--gold);font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:90;transition:all .2s;max-width:420px}
+.feedback-trigger:hover{background:rgba(201,168,76,.2);transform:scale(1.1)}
+
 /* PERMISSION BANNER */
 .perm-banner{background:rgba(91,155,213,0.08);border:1px solid rgba(91,155,213,0.25);border-radius:3px;padding:14px 16px;margin-bottom:20px;display:flex;align-items:flex-start;gap:12px}
 .perm-icon{font-size:18px;flex-shrink:0;margin-top:1px}
@@ -554,6 +612,23 @@ export default function DayMasters() {
   );
   const [activeAccountabilityMsg, setActiveAccountabilityMsg] = useState(null);
   const [scheduledTimers, setScheduledTimers] = useState([]);
+
+  // Admin Easter egg
+  const [logoTaps, setLogoTaps] = useState(0);
+  const [showAdminPanel, setShowAdminPanel] = useState(false);
+  const [adminUnlocked, setAdminUnlocked] = useState(false);
+  const [adminKeyInput, setAdminKeyInput] = useState("");
+  const [adminKeyError, setAdminKeyError] = useState("");
+  const [activeTier, setActiveTier] = useState("free"); // "free" | "pro"
+  const logoTapTimer = useRef(null);
+
+  // Feedback system
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState(null); // "up" | "down"
+  const [feedbackText, setFeedbackText] = useState("");
+  const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [feedbackList, setFeedbackList] = useState([]);
+
   const msgsRef = useRef(null);
   const habitsRef = useRef(habits);
 
@@ -622,6 +697,51 @@ export default function DayMasters() {
     setScheduledTimers(newTimers);
     return () => newTimers.forEach(t => clearTimeout(t));
   }, [nudgeEnabled, companion, nudgeTypes, nudgeTime, notifPermission]);
+
+  // ── Easter egg: tap logo 5x to open admin panel ───────────────────────────
+  function handleLogoTap() {
+    const next = logoTaps + 1;
+    setLogoTaps(next);
+    if (logoTapTimer.current) clearTimeout(logoTapTimer.current);
+    if (next >= LOGO_TAP_COUNT) {
+      setLogoTaps(0);
+      setShowAdminPanel(true);
+      setAdminKeyInput("");
+      setAdminKeyError("");
+    } else {
+      logoTapTimer.current = setTimeout(() => setLogoTaps(0), 2000);
+    }
+  }
+
+  function submitAdminKey() {
+    if (adminKeyInput.toUpperCase() === ADMIN_KEY) {
+      setAdminUnlocked(true);
+      setAdminKeyError("");
+    } else {
+      setAdminKeyError("Invalid key. Try again.");
+      setAdminKeyInput("");
+    }
+  }
+
+  // ── Feedback ──────────────────────────────────────────────────────────────
+  function submitFeedback() {
+    if (!feedbackRating) return;
+    const entry = {
+      id: Date.now(),
+      rating: feedbackRating,
+      text: feedbackText,
+      date: new Date().toLocaleDateString(),
+      companion: companion?.name || "None",
+    };
+    setFeedbackList(prev => [entry, ...prev]);
+    setFeedbackSubmitted(true);
+    setTimeout(() => {
+      setShowFeedback(false);
+      setFeedbackSubmitted(false);
+      setFeedbackRating(null);
+      setFeedbackText("");
+    }, 2200);
+  }
 
   async function handleEnableNotifications() {
     const perm = await requestNotificationPermission();
@@ -803,10 +923,16 @@ export default function DayMasters() {
         {screen === "splash" && (
           <div className="splash">
             <div className="aura" />
-            <div className="orb-wrap">
-              <div className="orb-ring" /><div className="orb-ring" /><div className="orb-ring" />
-              <div className="orb-core"><span className="orb-glyph">&#9672;</span></div>
-            </div>
+            <img
+              src="/dayimage.png"
+              alt="Day Masters"
+              className="dm-logo"
+              onClick={handleLogoTap}
+              draggable={false}
+            />
+            {logoTaps > 0 && logoTaps < LOGO_TAP_COUNT && (
+              <div className="logo-tap-hint">{LOGO_TAP_COUNT - logoTaps} more...</div>
+            )}
             <div className="app-name">Day Masters</div>
             <div className="app-tag">The Ultimate Human Compass</div>
             <p className="splash-copy">Every decision. Every conversation. Every step forward. Your companions are here.</p>
@@ -1250,9 +1376,135 @@ export default function DayMasters() {
           </div>
         )}
 
+        {/* ADMIN PANEL OVERLAY — tap logo 5x to access */}
+        {showAdminPanel && (
+          <div className="admin-overlay" onClick={e => { if (e.target === e.currentTarget) setShowAdminPanel(false); }}>
+            <div className="admin-panel">
+              <button className="admin-close" onClick={() => setShowAdminPanel(false)}>✕</button>
+              {!adminUnlocked ? (
+                <>
+                  <div className="admin-eyebrow">Throne Tech</div>
+                  <div className="admin-title">Admin Access</div>
+                  <div className="admin-sub">Enter your administrative key to unlock developer mode.</div>
+                  <input
+                    className="admin-input"
+                    type="password"
+                    placeholder="Enter admin key"
+                    value={adminKeyInput}
+                    onChange={e => setAdminKeyInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === "Enter") submitAdminKey(); }}
+                    autoFocus
+                  />
+                  <div className="admin-error">{adminKeyError}</div>
+                  <button className="btn-full" style={{ marginTop: 16 }} disabled={!adminKeyInput} onClick={submitAdminKey}>
+                    Unlock
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="admin-unlocked">
+                    <div className="admin-unlocked-icon">👑</div>
+                    <div className="admin-unlocked-title">Developer Mode Active</div>
+                    <div style={{ fontSize: 12, color: "var(--dim)", fontWeight: 300 }}>
+                      Simulate subscription tiers and view user feedback.
+                    </div>
+                  </div>
+
+                  <div style={{ fontSize: 11, letterSpacing: 3, textTransform: "uppercase", color: "var(--dim)", margin: "20px 0 10px" }}>
+                    Active Tier
+                  </div>
+                  <div className="admin-tier-btns">
+                    <button className={`tier-btn ${activeTier === "free" ? "active" : ""}`} onClick={() => setActiveTier("free")}>
+                      <span>Free Plan</span>
+                      {activeTier === "free" && <span className="tier-badge">Active</span>}
+                    </button>
+                    <button className={`tier-btn ${activeTier === "pro" ? "active" : ""}`} onClick={() => setActiveTier("pro")}>
+                      <span>Pro Plan — Full Access</span>
+                      {activeTier === "pro" && <span className="tier-badge">Active</span>}
+                    </button>
+                  </div>
+
+                  <div className="feedback-count" style={{ marginTop: 20 }}>
+                    <div className="feedback-count-label">User Feedback Submitted</div>
+                    <div className="feedback-count-num">{feedbackList.length}</div>
+                    {feedbackList.length > 0 && (
+                      <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
+                        {feedbackList.slice(0, 5).map(f => (
+                          <div key={f.id} style={{ fontSize: 12, color: "var(--dim)", borderTop: "1px solid var(--border)", paddingTop: 8, display: "flex", gap: 8 }}>
+                            <span>{f.rating === "up" ? "👍" : "👎"}</span>
+                            <div>
+                              <div style={{ fontSize: 10, color: "var(--gold)", marginBottom: 2 }}>{f.date} · {f.companion}</div>
+                              <div>{f.text || "No comment"}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  <button className="btn-ghost" style={{ width: "100%", marginTop: 16 }} onClick={() => { setAdminUnlocked(false); setShowAdminPanel(false); }}>
+                    Exit Admin Mode
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* FEEDBACK FLOATING BUTTON — visible on dashboard */}
+        {screen === "dash" && !showFeedback && !showAdminPanel && (
+          <button className="feedback-trigger" onClick={() => setShowFeedback(true)} title="Share feedback">
+            💬
+          </button>
+        )}
+
+        {/* FEEDBACK MODAL */}
+        {showFeedback && (
+          <div className="feedback-overlay" onClick={e => { if (e.target === e.currentTarget) setShowFeedback(false); }}>
+            <div className="feedback-modal">
+              {!feedbackSubmitted ? (
+                <>
+                  <div className="feedback-title">How is Day Masters serving you?</div>
+                  <div className="feedback-sub">Your honesty helps us build something better. All feedback goes straight to the team.</div>
+                  <div className="feedback-rating">
+                    <button className={`rating-btn up ${feedbackRating === "up" ? "sel" : ""}`} onClick={() => setFeedbackRating("up")}>
+                      <div className="rating-icon">👍</div>
+                      <div className="rating-label">It's working</div>
+                    </button>
+                    <button className={`rating-btn down ${feedbackRating === "down" ? "sel" : ""}`} onClick={() => setFeedbackRating("down")}>
+                      <div className="rating-icon">👎</div>
+                      <div className="rating-label">Needs work</div>
+                    </button>
+                  </div>
+                  <textarea
+                    className="feedback-textarea"
+                    placeholder="Tell us more — what's working, what's missing, what would make this indispensable to you..."
+                    value={feedbackText}
+                    onChange={e => setFeedbackText(e.target.value)}
+                    rows={3}
+                  />
+                  <button className="btn-full" style={{ marginTop: 0 }} disabled={!feedbackRating} onClick={submitFeedback}>
+                    Submit Feedback
+                  </button>
+                  <button className="btn-ghost" style={{ width: "100%", marginTop: 10 }} onClick={() => setShowFeedback(false)}>
+                    Not Now
+                  </button>
+                </>
+              ) : (
+                <div className="feedback-success">
+                  <div className="feedback-success-icon">✨</div>
+                  <div className="feedback-success-title">Thank you. Seriously.</div>
+                  <div className="feedback-success-sub">Your voice shapes what Day Masters becomes. We heard you.</div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
       </div>
     </>
   );
 }
+
 
 
