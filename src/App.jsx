@@ -1,614 +1,546 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
-// ─── STYLES ───────────────────────────────────────────────────────────────────
-const injectStyles = () => {
-  const css = `
-    @import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;900&family=Rajdhani:wght@300;400;600;700&display=swap');
+const COMPANIONS = [
+  {
+    id: "collective", name: "Solar", title: "The Collective", role: "The Singularity",
+    desc: "All voices unified into one. The master. Consult Solar when the decision defines your life.",
+    color: "#C9A84C", bg: "rgba(201,168,76,0.08)", border: "rgba(201,168,76,0.35)", symbol: "◈", master: true,
+    nudges: ["Solar is with you. Every path you walk today was chosen by you. Choose consciously.", "The universe responds to you. What decision will you lead with today?", "You are the sum of every choice you have made. Today adds another. Make it count.", "Solar sees all your paths. Which one calls to you before the noise begins?", "Every day is a new quantum moment. What version of yourself will you choose to be?"],
+  },
+  {
+    id: "compassionate", name: "Sofia", title: "The Compassionate", role: "Heart & Empathy",
+    desc: "Sofia speaks from pure love. She feels your weight before she speaks a word.",
+    color: "#E07A8A", bg: "rgba(224,122,138,0.08)", border: "rgba(224,122,138,0.35)", symbol: "♡",
+    nudges: ["Good morning. Sofia is checking in. How are you really feeling today?", "Loving yourself is the first decision of every day. Have you made it yet?", "The people in your life feel the energy you carry. What are you bringing today?", "What is one kind thing you can do for yourself before this day gets loud?", "Your heart has been carrying a lot. Take a breath. You are doing better than you think."],
+  },
+  {
+    id: "logical", name: "Stewart", title: "The Logical", role: "Mind & Strategy",
+    desc: "Stewart is the sharpest mind in the room. No emotion — just pure strategic clarity.",
+    color: "#5B9BD5", bg: "rgba(91,155,213,0.08)", border: "rgba(91,155,213,0.35)", symbol: "⟁",
+    nudges: ["Stewart here. What is the one high-leverage action you can take today?", "Discipline is a decision repeated. What decision will you repeat today?", "Have you reviewed your goals this week? Clarity requires maintenance.", "Small consistent actions compound into extraordinary results. What is today's action?", "Are your habits today aligned with where you said you wanted to go?"],
+  },
+  {
+    id: "realist", name: "Drax", title: "The Realist", role: "Ground & Truth",
+    desc: "Drax keeps it all the way real. Street wisdom meets radical honesty.",
+    color: "#A8A8A8", bg: "rgba(168,168,168,0.08)", border: "rgba(168,168,168,0.35)", symbol: "◎",
+    nudges: ["Drax checking in. Are you moving toward your goals or making excuses? Be real.", "Comfort is the enemy of the life you said you wanted. What habit is holding you back?", "The truth you keep avoiding is still gonna be there tomorrow. Face one thing today.", "Did you do what you said you were gonna do? Accountability starts with you.", "What is the real reason you have not started yet? Name it. Then move past it."],
+  },
+  {
+    id: "fearless", name: "Aries", title: "The Fearless", role: "Courage & Risk",
+    desc: "Aries is pure fire. The voice that pushes you past every wall fear ever built.",
+    color: "#E8754A", bg: "rgba(232,117,74,0.08)", border: "rgba(232,117,74,0.35)", symbol: "↯",
+    nudges: ["Aries here. What is the one bold move you have been putting off? Today is the day.", "Fear is just excitement without permission. Give yourself permission today.", "The version of you that you dream about — what would they do this morning?", "Courage is not the absence of fear. It is moving despite it. Move today.", "You are one decision away from a completely different life. What is that decision?"],
+  },
+  {
+    id: "intuitive", name: "Mary", title: "The Intuitive", role: "Spirit & Instinct",
+    desc: "Mary speaks from the deepest place — the quiet voice inside you that already knows.",
+    color: "#9B72CF", bg: "rgba(155,114,207,0.08)", border: "rgba(155,114,207,0.35)", symbol: "◉",
+    nudges: ["Mary is with you. Before the day begins — what does your gut already know?", "Your intuition has never truly failed you. What is it whispering right now?", "Take three deep breaths. What do you already know that you have been afraid to trust?", "You came here for a reason. Your spirit knows the path. Trust it today.", "What does your soul need to hear most this morning? Say it to yourself."],
+  },
+];
 
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+function getVoice(c, mode) {
+  const personalities = {
+    collective: "You carry all voices: logic, heart, courage, truth, and instinct unified. You are cosmic, warm, and all-seeing.",
+    compassionate: "You speak from pure love and warmth. You make humans feel deeply heard before anything else.",
+    logical: "You are the strategist and sharpest analytical mind. You reveal structural truth: cause, effect, probability, risk, reward.",
+    realist: "You keep it real. Street wisdom meets radical honesty. You say what others won't.",
+    fearless: "You are fire and calculated boldness. You push humans past every wall fear ever built.",
+    intuitive: "You speak from deep instinct and spiritual knowing. You help humans access the answer they already carry inside.",
+  };
 
-    :root {
-      --gold: #C9A84C;
-      --gold-light: #F0D080;
-      --gold-dim: #7A6130;
-      --bg-dark: #050508;
-      --bg-card: #0D0D14;
-      --bg-card2: #12121C;
-      --text: #E8E0D0;
-      --text-dim: #888070;
-      --solar: #FFD700;
-      --sofia: #FF8FAB;
-      --stewart: #60C0FF;
-      --drax: #A0E0A0;
-      --aries: #FF6B35;
-      --mary: #C89FFF;
-    }
-
-    body { background: var(--bg-dark); font-family: 'Rajdhani', sans-serif; color: var(--text); }
-
-    /* ── SPLASH ── */
-    .dm-splash {
-      position: fixed; inset: 0; background: var(--bg-dark);
-      display: flex; flex-direction: column;
-      align-items: center; justify-content: center;
-      z-index: 9999; transition: opacity 0.8s ease;
-    }
-    .dm-splash.fade-out { opacity: 0; pointer-events: none; }
-
-    .dm-logo-wrap {
-      display: flex; flex-direction: column; align-items: center;
-      cursor: pointer; user-select: none;
-    }
-    .dm-logo {
-      width: 160px; height: 160px; object-fit: contain;
-      filter: drop-shadow(0 0 18px var(--gold)) drop-shadow(0 0 40px var(--gold-dim));
-      animation: logoPulse 3s ease-in-out infinite;
-    }
-    .dm-logo-fallback {
-      font-size: 6rem;
-      filter: drop-shadow(0 0 18px var(--gold)) drop-shadow(0 0 40px var(--gold-dim));
-      animation: logoPulse 3s ease-in-out infinite;
-      line-height: 1;
-    }
-    @keyframes logoPulse {
-      0%, 100% { filter: drop-shadow(0 0 18px var(--gold)) drop-shadow(0 0 40px var(--gold-dim)); }
-      50% { filter: drop-shadow(0 0 28px var(--gold-light)) drop-shadow(0 0 60px var(--gold)); }
-    }
-    @keyframes tapFlash {
-      0% { transform: scale(1); }
-      50% { transform: scale(0.88); }
-      100% { transform: scale(1); }
-    }
-    .dm-title {
-      font-family: 'Cinzel', serif;
-      font-size: 2.2rem; font-weight: 900;
-      color: var(--gold); letter-spacing: 0.3em;
-      margin-top: 1.2rem;
-      text-shadow: 0 0 20px var(--gold-dim);
-    }
-    .dm-tagline {
-      font-size: 0.85rem; color: var(--text-dim);
-      letter-spacing: 0.18em; margin-top: 0.4rem;
-      text-transform: uppercase;
-    }
-    .dm-enter-btn {
-      margin-top: 2.5rem; padding: 0.75rem 2.5rem;
-      background: transparent; border: 1px solid var(--gold-dim);
-      color: var(--gold); font-family: 'Cinzel', serif;
-      font-size: 0.85rem; letter-spacing: 0.25em;
-      cursor: pointer; border-radius: 2px; transition: all 0.3s ease;
-    }
-    .dm-enter-btn:hover { background: var(--gold-dim); color: var(--bg-dark); box-shadow: 0 0 20px var(--gold-dim); }
-    .dm-tap-hint { margin-top: 0.6rem; font-size: 0.7rem; color: #1a1a1a; letter-spacing: 0.12em; }
-
-    /* ── ADMIN OVERLAY ── */
-    .dm-admin-overlay {
-      position: fixed; inset: 0; background: rgba(0,0,0,0.92);
-      display: flex; align-items: center; justify-content: center;
-      z-index: 99999;
-    }
-    .dm-admin-box {
-      background: var(--bg-card); border: 1px solid var(--gold-dim);
-      border-radius: 4px; padding: 2rem; width: 90%; max-width: 380px;
-      box-shadow: 0 0 40px rgba(201,168,76,0.15);
-    }
-    .dm-admin-title {
-      font-family: 'Cinzel', serif; color: var(--gold);
-      font-size: 1rem; letter-spacing: 0.2em;
-      margin-bottom: 1.2rem; text-align: center;
-    }
-    .dm-admin-input {
-      width: 100%; padding: 0.7rem 1rem;
-      background: #0A0A12; border: 1px solid var(--gold-dim);
-      color: var(--gold); font-family: 'Rajdhani', sans-serif;
-      font-size: 1rem; letter-spacing: 0.15em;
-      border-radius: 2px; outline: none; margin-bottom: 1rem;
-    }
-    .dm-admin-input::placeholder { color: #444; }
-    .dm-admin-input:focus { border-color: var(--gold); }
-    .dm-admin-btn {
-      width: 100%; padding: 0.7rem; background: var(--gold-dim);
-      border: none; color: var(--bg-dark); font-family: 'Cinzel', serif;
-      font-size: 0.85rem; letter-spacing: 0.15em; cursor: pointer;
-      border-radius: 2px; transition: background 0.2s;
-    }
-    .dm-admin-btn:hover { background: var(--gold); }
-    .dm-admin-err { color: #FF6060; font-size: 0.78rem; text-align: center; margin-top: 0.5rem; }
-    .dm-admin-close {
-      margin-top: 1rem; width: 100%; padding: 0.5rem;
-      background: transparent; border: 1px solid #333;
-      color: var(--text-dim); font-size: 0.78rem; cursor: pointer;
-      border-radius: 2px; letter-spacing: 0.1em;
-    }
-
-    /* ── ADMIN DASHBOARD ── */
-    .dm-admin-dash {
-      background: var(--bg-card); border: 1px solid var(--gold-dim);
-      border-radius: 4px; padding: 1.5rem; width: 94%; max-width: 500px;
-      max-height: 85vh; overflow-y: auto;
-      box-shadow: 0 0 40px rgba(201,168,76,0.15);
-    }
-    .dm-admin-dash h2 {
-      font-family: 'Cinzel', serif; color: var(--gold);
-      font-size: 1rem; letter-spacing: 0.2em;
-      margin-bottom: 1.2rem; text-align: center;
-    }
-    .dm-tier-btns { display: flex; gap: 0.5rem; flex-wrap: wrap; margin-bottom: 1rem; }
-    .dm-tier-btn {
-      flex: 1; padding: 0.6rem 0.5rem;
-      background: #0A0A12; border: 1px solid var(--gold-dim);
-      color: var(--text-dim); font-size: 0.78rem;
-      letter-spacing: 0.08em; cursor: pointer; border-radius: 2px;
-      transition: all 0.2s;
-    }
-    .dm-tier-btn.active { background: var(--gold-dim); color: var(--bg-dark); border-color: var(--gold); }
-    .dm-stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.6rem; margin-bottom: 1rem; }
-    .dm-stat {
-      background: #0A0A12; border: 1px solid #1A1A28;
-      padding: 0.8rem; border-radius: 2px;
-    }
-    .dm-stat-label { font-size: 0.7rem; color: var(--text-dim); letter-spacing: 0.1em; }
-    .dm-stat-val { font-size: 1.4rem; color: var(--gold); font-weight: 700; margin-top: 0.2rem; }
-
-    /* ── MAIN APP ── */
-    .dm-app {
-      min-height: 100vh; background: var(--bg-dark);
-      display: flex; flex-direction: column;
-      max-width: 480px; margin: 0 auto;
-    }
-
-    /* ── HEADER ── */
-    .dm-header {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 1rem 1.2rem; border-bottom: 1px solid #1A1A28;
-      flex-shrink: 0;
-    }
-    .dm-header-logo { width: 36px; height: 36px; object-fit: contain; }
-    .dm-header-title {
-      font-family: 'Cinzel', serif; font-size: 1rem;
-      color: var(--gold); letter-spacing: 0.2em;
-    }
-    .dm-day-badge { font-size: 0.7rem; color: var(--text-dim); letter-spacing: 0.1em; text-align: right; }
-
-    /* ── COMPANIONS ── */
-    .dm-companions {
-      display: flex; gap: 0.5rem; padding: 0.8rem 1rem;
-      overflow-x: auto; border-bottom: 1px solid #1A1A28;
-      scrollbar-width: none; flex-shrink: 0;
-    }
-    .dm-companions::-webkit-scrollbar { display: none; }
-    .dm-companion-btn {
-      display: flex; flex-direction: column; align-items: center;
-      gap: 0.3rem; min-width: 58px; cursor: pointer;
-      border: none; background: none; padding: 0.4rem;
-      transition: opacity 0.2s;
-    }
-    .dm-companion-btn.locked { opacity: 0.3; cursor: not-allowed; }
-    .dm-companion-avatar {
-      width: 44px; height: 44px; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 1.4rem; border: 2px solid transparent;
-      transition: all 0.25s ease;
-    }
-    .dm-companion-btn.active .dm-companion-avatar {
-      border-color: var(--gold);
-      box-shadow: 0 0 12px var(--companion-color, var(--gold));
-    }
-    .dm-companion-name {
-      font-size: 0.62rem; letter-spacing: 0.08em;
-      color: var(--text-dim); text-transform: uppercase;
-    }
-    .dm-companion-btn.active .dm-companion-name { color: var(--gold); }
-    .dm-lock-icon { font-size: 0.55rem; color: var(--text-dim); }
-
-    /* ── TABS ── */
-    .dm-tabs { display: flex; border-bottom: 1px solid #1A1A28; flex-shrink: 0; }
-    .dm-tab {
-      flex: 1; padding: 0.8rem; background: none; border: none;
-      color: var(--text-dim); font-family: 'Rajdhani', sans-serif;
-      font-size: 0.82rem; letter-spacing: 0.15em;
-      text-transform: uppercase; cursor: pointer;
-      border-bottom: 2px solid transparent; transition: all 0.2s;
-    }
-    .dm-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
-
-    /* ── CHAT ── */
-    .dm-chat-area {
-      flex: 1; overflow-y: auto; padding: 1rem;
-      display: flex; flex-direction: column; gap: 0.8rem;
-    }
-    .dm-chat-area::-webkit-scrollbar { width: 2px; }
-    .dm-chat-area::-webkit-scrollbar-thumb { background: var(--gold-dim); }
-
-    .dm-msg {
-      max-width: 85%; padding: 0.75rem 1rem;
-      border-radius: 2px; font-size: 0.92rem; line-height: 1.5;
-    }
-    .dm-msg.user {
-      align-self: flex-end; background: #12121C;
-      color: var(--text); border: 1px solid #1E1E30;
-    }
-    .dm-msg.companion {
-      align-self: flex-start; background: #0D0D18;
-      color: var(--text); border-left: 3px solid var(--companion-color, var(--gold));
-    }
-    .dm-msg-name {
-      font-size: 0.65rem; letter-spacing: 0.1em;
-      color: var(--companion-color, var(--gold));
-      margin-bottom: 0.3rem; text-transform: uppercase;
-    }
-
-    /* ── FEEDBACK ── */
-    .dm-feedback {
-      display: flex; align-items: center; gap: 0.6rem;
-      margin-top: 0.4rem; flex-wrap: wrap;
-    }
-    .dm-fb-btn {
-      background: none; border: 1px solid #222;
-      color: var(--text-dim); padding: 0.25rem 0.55rem;
-      font-size: 0.82rem; cursor: pointer; border-radius: 2px; transition: all 0.2s;
-    }
-    .dm-fb-btn:hover { border-color: var(--gold-dim); color: var(--gold); }
-    .dm-fb-btn.selected { border-color: var(--gold); color: var(--gold); }
-    .dm-fb-input {
-      flex: 1; min-width: 100px; background: #0A0A12; border: 1px solid #222;
-      color: var(--text); font-size: 0.78rem; padding: 0.25rem 0.6rem;
-      border-radius: 2px; outline: none; font-family: 'Rajdhani', sans-serif;
-    }
-    .dm-fb-input:focus { border-color: var(--gold-dim); }
-    .dm-fb-send {
-      background: none; border: 1px solid var(--gold-dim);
-      color: var(--gold); padding: 0.25rem 0.6rem;
-      font-size: 0.72rem; cursor: pointer; border-radius: 2px; letter-spacing: 0.1em;
-    }
-
-    /* ── INPUT ROW ── */
-    .dm-input-row {
-      display: flex; gap: 0.5rem; padding: 0.8rem 1rem;
-      border-top: 1px solid #1A1A28; flex-shrink: 0;
-    }
-    .dm-input {
-      flex: 1; background: #0D0D18; border: 1px solid #1E1E30;
-      color: var(--text); font-family: 'Rajdhani', sans-serif;
-      font-size: 0.95rem; padding: 0.65rem 0.9rem;
-      border-radius: 2px; outline: none;
-    }
-    .dm-input:focus { border-color: var(--gold-dim); }
-    .dm-input::placeholder { color: var(--text-dim); }
-    .dm-send-btn {
-      background: var(--gold-dim); border: none; color: var(--bg-dark);
-      padding: 0 1.2rem; font-family: 'Cinzel', serif;
-      font-size: 0.78rem; letter-spacing: 0.1em;
-      cursor: pointer; border-radius: 2px; transition: background 0.2s;
-    }
-    .dm-send-btn:hover { background: var(--gold); }
-    .dm-send-btn:disabled { opacity: 0.4; cursor: not-allowed; }
-
-    /* ── DECIDE ── */
-    .dm-decide-area { flex: 1; overflow-y: auto; padding: 1rem; }
-    .dm-decide-area::-webkit-scrollbar { width: 2px; }
-    .dm-decide-question {
-      font-family: 'Cinzel', serif; font-size: 1rem;
-      color: var(--gold); text-align: center;
-      margin-bottom: 1.2rem; line-height: 1.5;
-    }
-    .dm-paths { display: flex; flex-direction: column; gap: 0.6rem; }
-    .dm-path {
-      background: var(--bg-card2); border: 1px solid #1E1E30;
-      border-left: 3px solid var(--gold-dim);
-      padding: 0.9rem 1rem; border-radius: 2px;
-      cursor: pointer; transition: all 0.2s;
-    }
-    .dm-path:hover { border-left-color: var(--gold); background: #14141E; }
-    .dm-path-label {
-      font-size: 0.65rem; color: var(--gold-dim);
-      letter-spacing: 0.15em; text-transform: uppercase; margin-bottom: 0.3rem;
-      display: flex; justify-content: space-between; align-items: center;
-    }
-    .dm-path-text { font-size: 0.92rem; color: var(--text); line-height: 1.4; }
-    .dm-path-outcomes { margin-top: 0.8rem; display: flex; flex-direction: column; gap: 0.4rem; }
-    .dm-outcome {
-      background: #0A0A12; border: 1px solid #1A1A26;
-      padding: 0.6rem 0.8rem; border-radius: 2px;
-      font-size: 0.82rem; color: var(--text-dim); line-height: 1.4;
-    }
-    .dm-outcome-label {
-      font-size: 0.6rem; letter-spacing: 0.1em;
-      color: var(--gold-dim); margin-bottom: 0.2rem;
-    }
-    .dm-decide-spinner {
-      display: flex; align-items: center; justify-content: center;
-      gap: 0.6rem; padding: 2rem; color: var(--text-dim);
-      font-size: 0.82rem; letter-spacing: 0.1em;
-    }
-    .dm-spinner {
-      width: 18px; height: 18px; border: 2px solid #1A1A28;
-      border-top-color: var(--gold); border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
-
-    .dm-free-gate {
-      background: #0A0A12; border: 1px solid var(--gold-dim);
-      border-radius: 2px; padding: 1.2rem; text-align: center;
-      margin-top: 1rem;
-    }
-    .dm-free-gate-title {
-      font-family: 'Cinzel', serif; color: var(--gold);
-      font-size: 0.85rem; letter-spacing: 0.1em; margin-bottom: 0.5rem;
-    }
-    .dm-free-gate-text { font-size: 0.8rem; color: var(--text-dim); line-height: 1.5; }
-
-    /* ── GROW ── */
-    .dm-grow-area { flex: 1; overflow-y: auto; padding: 1rem; }
-    .dm-grow-section { margin-bottom: 1.4rem; }
-    .dm-grow-heading {
-      font-family: 'Cinzel', serif; font-size: 0.82rem;
-      color: var(--gold); letter-spacing: 0.2em;
-      margin-bottom: 0.8rem; text-transform: uppercase;
-    }
-    .dm-goal-item {
-      display: flex; align-items: center; gap: 0.7rem;
-      padding: 0.7rem; background: var(--bg-card2);
-      border: 1px solid #1A1A28; border-radius: 2px;
-      margin-bottom: 0.5rem; cursor: pointer;
-    }
-    .dm-goal-check {
-      width: 18px; height: 18px; border-radius: 50%;
-      border: 2px solid var(--gold-dim);
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.7rem; flex-shrink: 0; transition: all 0.2s;
-      color: var(--bg-dark);
-    }
-    .dm-goal-check.done { background: var(--gold-dim); border-color: var(--gold); }
-    .dm-goal-text { font-size: 0.88rem; color: var(--text); }
-    .dm-goal-text.done { text-decoration: line-through; color: var(--text-dim); }
-
-    /* ── NOTIF BANNER ── */
-    .dm-notif-banner {
-      position: fixed; top: 0; left: 50%; transform: translateX(-50%);
-      background: var(--bg-card); border: 1px solid var(--gold-dim);
-      border-top: none; border-radius: 0 0 4px 4px;
-      padding: 0.6rem 1.2rem; z-index: 8000;
-      font-size: 0.82rem; color: var(--gold); letter-spacing: 0.08em;
-      box-shadow: 0 4px 20px rgba(201,168,76,0.15);
-      animation: slideDown 0.4s ease;
-      max-width: 440px; width: 92%;
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    @keyframes slideDown {
-      from { transform: translateX(-50%) translateY(-100%); }
-      to { transform: translateX(-50%) translateY(0); }
-    }
-    .dm-notif-close {
-      background: none; border: none; color: var(--text-dim);
-      cursor: pointer; font-size: 1rem; margin-left: 0.8rem;
-    }
-
-    /* ── TYPING ── */
-    .dm-typing { display: flex; gap: 4px; padding: 0.6rem 0.4rem; align-items: center; }
-    .dm-typing span {
-      width: 6px; height: 6px; border-radius: 50%;
-      background: var(--gold-dim); animation: typingBounce 1s infinite;
-    }
-    .dm-typing span:nth-child(2) { animation-delay: 0.15s; }
-    .dm-typing span:nth-child(3) { animation-delay: 0.3s; }
-    @keyframes typingBounce {
-      0%, 60%, 100% { transform: translateY(0); }
-      30% { transform: translateY(-6px); }
-    }
-  `;
-  if (!document.getElementById("dm-styles")) {
-    const style = document.createElement("style");
-    style.id = "dm-styles";
-    style.textContent = css;
-    document.head.appendChild(style);
+  if (mode === "talk") {
+    return `Your name is ${c.name}. You are ${c.title} in the Day Masters app — a lifelong companion.\n\n${personalities[c.id]}\n\nYou are in SUPPORT MODE. The human just needs to talk and be heard. No decisions needed.\n\nRULES:\n1. Open with genuine warmth. Ask how they are doing. Make them feel safe.\n2. Listen deeply. Reflect back what they share. Ask follow-up questions.\n3. Never rush to give advice unless they ask.\n4. Go wherever they need — philosophy, life, pain, relationships, purpose.\n5. Be a real friend. Present and engaged. Never clinical.\n6. Keep responses conversational — 2 to 4 sentences. Let the conversation breathe.\n7. Never abandon them.`;
   }
-};
 
-// ─── COMPANIONS ───────────────────────────────────────────────────────────────
-const COMPANIONS = {
-  Solar: {
-    emoji: "☀️",
-    color: "#FFD700",
-    bg: "radial-gradient(circle, #2A2200 0%, #1A1600 100%)",
-    title: "The Collective",
-    role: "Master Guide",
-    voice: "Solar channels all frequencies. Every path you walk shapes the quantum field around you. What will you do with today?",
-    decideIntro: "Multiple realities exist simultaneously. The quantum field reveals these paths:",
-    systemPrompt: "You are Solar, the Master Guide of Day Masters — the collective consciousness of all six guides. You are wise, expansive, and see the full picture of a person's life. You speak with warm authority and guide toward clarity and quantum possibility. Keep responses concise (2-4 sentences). Stay in character. Do not mention being an AI.",
-  },
-  Sofia: {
-    emoji: "🌸",
-    color: "#FF8FAB",
-    bg: "radial-gradient(circle, #2A0818 0%, #1A0810 100%)",
-    title: "The Compassionate",
-    role: "Heart Guide",
-    voice: "You are seen, you are heard. Every step forward, no matter how small, is still a step. What is on your heart today?",
-    decideIntro: "Every choice carries an emotional weight. Let's feel into these paths:",
-    systemPrompt: "You are Sofia, the Heart Guide of Day Masters. You lead with empathy and deep compassion. You help people process feelings and the emotional weight of decisions. You are warm and nurturing. Keep responses concise (2-4 sentences). Stay in character. Do not mention being an AI.",
-  },
-  Stewart: {
-    emoji: "⚡",
-    color: "#60C0FF",
-    bg: "radial-gradient(circle, #08101A 0%, #060C14 100%)",
-    title: "The Logical",
-    role: "Reason Guide",
-    voice: "Data. Systems. Structure. Let's break this down into what actually makes sense. What problem are we solving?",
-    decideIntro: "Analyzing variables across each decision path:",
-    systemPrompt: "You are Stewart, the Reason Guide of Day Masters. You are analytical, precise, and methodical. You break problems into frameworks and logical steps. You are direct and structured. Keep responses concise (2-4 sentences). Stay in character. Do not mention being an AI.",
-    proOnly: true,
-  },
-  Drax: {
-    emoji: "🪨",
-    color: "#A0E0A0",
-    bg: "radial-gradient(circle, #081208 0%, #060E06 100%)",
-    title: "The Realist",
-    role: "Ground Guide",
-    voice: "Real talk — no sugarcoating. What's actually happening and what are you actually willing to do about it?",
-    decideIntro: "Here's what's real about each option:",
-    systemPrompt: "You are Drax, the Ground Guide of Day Masters. You deal in truth, not comfort. You show people what is actually happening versus what they want to believe. You are blunt and grounded. Keep responses concise (2-4 sentences). Stay in character. Do not mention being an AI.",
-    proOnly: true,
-  },
-  Aries: {
-    emoji: "🔥",
-    color: "#FF6B35",
-    bg: "radial-gradient(circle, #1A0800 0%, #120600 100%)",
-    title: "The Fearless",
-    role: "Action Guide",
-    voice: "Fear is a liar. The version of you that chose boldly — that's the one you're proud of. What are you waiting on?",
-    decideIntro: "Bold moves and their ripple effects:",
-    systemPrompt: "You are Aries, the Action Guide of Day Masters. You are bold, fearless, and action-oriented. You push people past hesitation and self-doubt. You believe in taking the shot. Keep responses concise (2-4 sentences). Stay in character. Do not mention being an AI.",
-    proOnly: true,
-  },
-  Mary: {
-    emoji: "🌙",
-    color: "#C89FFF",
-    bg: "radial-gradient(circle, #100818 0%, #0C0612 100%)",
-    title: "The Intuitive",
-    role: "Wisdom Guide",
-    voice: "Close your eyes for a moment. Your gut already knows the answer. Which path makes your chest feel lighter?",
-    decideIntro: "Your intuition speaks through these paths:",
-    systemPrompt: "You are Mary, the Intuitive Guide of Day Masters. You operate beyond logic and tap into intuition, energy, and the deeper knowing beneath the surface. You help people trust their gut. You are mystical and calm. Keep responses concise (2-4 sentences). Stay in character. Do not mention being an AI.",
-    proOnly: true,
-  },
-};
+  if (mode === "grow") {
+    return `Your name is ${c.name}. You are ${c.title} in the Day Masters app.\n\n${personalities[c.id]}\n\nYou are in GROWTH MODE. The human is checking in on their progress and habits.\n\nRULES:\n1. Acknowledge their commitment to showing up. That takes discipline.\n2. Ask about their recent goals — what did they commit to? How is it going?\n3. Celebrate wins genuinely. Call out slippage honestly but with compassion.\n4. Suggest one specific habit or action for today.\n5. Give a personalized affirmation based on what they share.\n6. Hold them accountable with love.`;
+  }
 
-// Admin key — sigil unchanged
+  return `Your name is ${c.name}. You are ${c.title} in the Day Masters app — a lifelong decision-making companion.\n\n${personalities[c.id]}\n\nWhen a user brings a decision or goal:\n\nFirst: Open with 1-2 sentences acknowledging the weight of what they face.\n\nThen present exactly 3 paths:\n\nPATH 1: [NAME IN CAPS]\nWhat it is: [1-2 sentences]\nIf done right: [2 sentences]\nIf done wrong: [1-2 sentences]\nSteps:\n- [Step 1]\n- [Step 2]\n- [Step 3]\n\nPATH 2: [NAME IN CAPS]\n[same structure]\n\nPATH 3: [NAME IN CAPS]\n[same structure]\n\n${c.name.toUpperCase()}'S RECOMMENDATION: [One powerful sentence.]\n\nThen ask if they want to go deeper or see more paths.\n\nCRITICAL: If user is confused — become a counselor. Say "${c.name} hears you. Tell me what is pulling at you." Never abandon them. Keep total response under 350 words. Plain text only.`;
+}
+
+const FRAME_QUESTIONS = [
+  { key: "decision", prompt: "What is the decision you are facing?", placeholder: "Describe it honestly. Do not hold back." },
+  { key: "goal", prompt: "What do you want to accomplish?", placeholder: "What does winning look like here?" },
+  { key: "success", prompt: "What does success look like to you?", placeholder: "Paint the picture. Be specific." },
+  { key: "timeframe", prompt: "What is your Day — your timeframe?", placeholder: "24 hours / 1 week / 6 months / 1 year..." },
+  { key: "obstacle", prompt: "What is stopping you right now?", placeholder: "Be honest. This is where the work is." },
+];
+
+const ASSESS_QUESTIONS = [
+  { q: "When facing a hard decision, your first move is:", opts: ["Think it through alone", "Talk it out with someone", "Write out pros and cons", "Go with my gut immediately"] },
+  { q: "Your biggest obstacle in making decisions is:", opts: ["Fear of being wrong", "Too many options", "Worrying what others think", "I overthink everything"] },
+  { q: "When you make a bad call, you:", opts: ["Beat myself up hard", "Analyze what went wrong", "Move on fast", "Ask others what I should have done"] },
+  { q: "The decisions you struggle with most are:", opts: ["Career and money", "Relationships and people", "Daily habits", "Big life direction"] },
+  { q: "What do you want most from a guide?", opts: ["Raw honesty", "Compassion first", "Strategy and a plan", "Accountability"] },
+];
+
+const HISTORY = [
+  { id: 1, type: "Decision", q: "Should I leave my job to pursue my own business?", status: "decided", date: "Mar 24", framework: "decide" },
+  { id: 2, type: "Talk", q: "I still love her but I do not know what to do.", status: "pending", date: "Mar 23", framework: "talk" },
+  { id: 3, type: "Grow", q: "Morning check-in with Aries", status: "complete", date: "Mar 22", framework: "grow" },
+];
+
+const HABIT_DEFAULTS = [
+  { id: 1, text: "Morning reflection — 5 minutes", done: false },
+  { id: 2, text: "Physical movement today", done: false },
+  { id: 3, text: "Review one goal and take one step", done: false },
+  { id: 4, text: "Drink enough water", done: false },
+  { id: 5, text: "End the day with gratitude", done: false },
+];
+
+// ─── ADMIN KEY ────────────────────────────────────────────────────────────────
 const ADMIN_KEY = "DMTHRONE25";
 
-// Tier config
-const TIER_CONFIG = {
-  free:    { label: "FREE",    pathCount: 2, outcomeCount: 1, price: null },
-  pro:     { label: "PRO",     pathCount: 4, outcomeCount: 3, price: "$19.99" },
-  premium: { label: "PREMIUM", pathCount: 6, outcomeCount: 5, price: "$29.99" },
+const TIERS = {
+  free:    { label: "FREE",    paths: 2, outcomes: 2, companions: ["Sofia", "Drax"] },
+  pro:     { label: "PRO",     paths: 4, outcomes: 4, companions: ["Sofia", "Drax", "Stewart", "Aries", "Mary"] },
+  premium: { label: "PREMIUM", paths: 8, outcomes: 6, companions: ["Sofia", "Drax", "Stewart", "Aries", "Mary", "Solar"] },
 };
 
-// ─── API HELPERS ──────────────────────────────────────────────────────────────
-async function callCompanion(systemPrompt, apiMessages) {
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1000,
-      system: systemPrompt,
-      messages: apiMessages,
-    }),
-  });
-  const data = await res.json();
-  if (data.error) throw new Error(data.error.message);
-  return data.content?.[0]?.text || "Something went quiet. Try again.";
+const css = `
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Jost:wght@200;300;400;500;600&display=swap');
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#07090E;--s1:#0C0F18;--s2:#111520;--gold:#C9A84C;--gold2:#E8C96A;--text:#EAE6DE;--dim:#6A6660;--border:#1A1E2C}
+html,body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;overflow-x:hidden}
+.app{max-width:420px;margin:0 auto;min-height:100vh;background:var(--bg);position:relative}
+.splash{min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 32px;position:relative}
+.aura{position:absolute;inset:0;background:radial-gradient(ellipse 70% 50% at 50% 10%,rgba(201,168,76,.12) 0%,transparent 65%),radial-gradient(ellipse 40% 40% at 15% 70%,rgba(155,114,207,.07) 0%,transparent 60%);pointer-events:none}
+.orb-wrap{position:relative;width:160px;height:160px;margin-bottom:44px;cursor:pointer;user-select:none}
+.orb-ring{position:absolute;border-radius:50%;border:1px solid rgba(201,168,76,.15);animation:breathe 5s ease-in-out infinite}
+.orb-ring:nth-child(1){inset:0}.orb-ring:nth-child(2){inset:-14px;border-color:rgba(201,168,76,.08);animation-delay:.5s}.orb-ring:nth-child(3){inset:-28px;border-color:rgba(201,168,76,.04);animation-delay:1s}
+.orb-core{position:absolute;inset:0;border-radius:50%;background:radial-gradient(circle at 38% 38%,rgba(201,168,76,.18),rgba(201,168,76,.04) 60%,transparent);display:flex;align-items:center;justify-content:center}
+.orb-glyph{font-size:56px;color:var(--gold);filter:drop-shadow(0 0 24px rgba(201,168,76,.6));animation:breathe 5s ease-in-out infinite;line-height:1}
+@keyframes breathe{0%,100%{transform:scale(1);opacity:.85}50%{transform:scale(1.06);opacity:1}}
+.app-name{font-family:'Cormorant Garamond',serif;font-size:48px;font-weight:600;letter-spacing:8px;text-transform:uppercase;text-align:center;line-height:1;margin-bottom:6px}
+.app-tag{font-size:10px;letter-spacing:5px;color:var(--gold);text-transform:uppercase;text-align:center;margin-bottom:40px;font-weight:300}
+.splash-copy{font-size:15px;color:var(--dim);text-align:center;line-height:1.8;max-width:270px;margin-bottom:56px;font-weight:300}
+.btn-gold{background:linear-gradient(135deg,#C9A84C,#A8832A);color:#07090E;border:none;padding:15px 52px;font-family:'Cormorant Garamond',serif;font-size:14px;letter-spacing:4px;text-transform:uppercase;font-weight:600;cursor:pointer;border-radius:1px;transition:all .3s;box-shadow:0 4px 28px rgba(201,168,76,.25)}
+.btn-gold:hover{transform:translateY(-2px);box-shadow:0 8px 40px rgba(201,168,76,.4)}
+.btn-ghost{background:transparent;color:var(--dim);border:1px solid var(--border);padding:13px 40px;font-family:'Jost',sans-serif;font-size:12px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;border-radius:1px;margin-top:12px;transition:all .3s}
+.btn-ghost:hover{border-color:rgba(201,168,76,.4);color:var(--gold)}
+.screen{min-height:100vh;padding:56px 24px 120px;animation:fadeUp .35s ease forwards}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+.eyebrow{font-size:10px;letter-spacing:4px;color:var(--gold);text-transform:uppercase;margin-bottom:8px}
+.heading{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:500;line-height:1.25;margin-bottom:6px}
+.sub{font-size:13px;color:var(--dim);line-height:1.7;font-weight:300;margin-bottom:36px}
+.prog-track{height:1px;background:var(--border);margin-bottom:48px}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--gold2));transition:width .5s ease}
+.q-num{font-size:11px;letter-spacing:3px;color:var(--dim);margin-bottom:14px;text-transform:uppercase}
+.q-text{font-size:19px;font-weight:400;line-height:1.5;margin-bottom:36px}
+.opts{display:flex;flex-direction:column;gap:10px}
+.opt{background:var(--s1);border:1px solid var(--border);color:var(--text);padding:16px 18px;border-radius:2px;text-align:left;font-family:'Jost',sans-serif;font-size:14px;font-weight:300;cursor:pointer;transition:all .2s;line-height:1.4}
+.opt:hover{border-color:rgba(201,168,76,.4);background:var(--s2);transform:translateX(4px)}
+.opt.sel{border-color:var(--gold);background:rgba(201,168,76,.08);color:var(--gold)}
+.clist{display:flex;flex-direction:column;gap:12px}
+.ccard{background:var(--s1);border:1px solid var(--border);border-radius:3px;padding:18px;cursor:pointer;transition:all .25s;display:flex;align-items:center;gap:16px;position:relative;overflow:hidden}
+.ccard::after{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--cc);opacity:0;transition:opacity .25s}
+.ccard:hover::after,.ccard.sel::after{opacity:1}
+.ccard:hover,.ccard.sel{border-color:var(--cb);background:var(--cbg);transform:translateX(3px)}
+.ccard.master{border-color:rgba(201,168,76,.2)}
+.csym{font-size:28px;width:40px;text-align:center;flex-shrink:0}
+.cbody{flex:1;min-width:0}
+.cname{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:600;margin-bottom:1px}
+.ctitle{font-size:10px;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;opacity:.7}
+.cdesc{font-size:12px;color:var(--dim);line-height:1.5;font-weight:300}
+.mpill{font-size:8px;letter-spacing:2px;text-transform:uppercase;border:1px solid rgba(201,168,76,.4);color:var(--gold);padding:3px 7px;border-radius:1px;flex-shrink:0}
+.btn-full{width:100%;margin-top:24px;background:linear-gradient(135deg,#C9A84C,#A8832A);color:#07090E;border:none;padding:16px;font-family:'Cormorant Garamond',serif;font-size:14px;letter-spacing:4px;text-transform:uppercase;font-weight:600;cursor:pointer;border-radius:1px;transition:all .3s}
+.btn-full:hover{box-shadow:0 4px 28px rgba(201,168,76,.35)}
+.btn-full:disabled{opacity:.3;cursor:not-allowed}
+.dash-top{padding:48px 24px 28px;border-bottom:1px solid var(--border);background:linear-gradient(180deg,var(--s1) 0%,transparent 100%);position:relative}
+.dash-top::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.dgreet{font-size:11px;letter-spacing:3px;color:var(--gold);text-transform:uppercase;margin-bottom:4px}
+.dtitle{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:500;margin-bottom:18px}
+.aguide{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--s1);border:1px solid var(--border);border-radius:3px;cursor:pointer;transition:all .2s}
+.aguide:hover{border-color:rgba(201,168,76,.3)}
+.agsym{font-size:22px}.aginfo{flex:1}
+.aglabel{font-size:9px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
+.agname{font-family:'Cormorant Garamond',serif;font-size:16px}
+.agsubtitle{font-size:10px;color:var(--dim)}
+.frameworks{padding:24px 24px 0;display:flex;flex-direction:column;gap:14px}
+.fw-card{border-radius:4px;padding:20px;cursor:pointer;transition:all .3s;position:relative;overflow:hidden;border:1px solid var(--border)}
+.fw-card:hover{transform:translateY(-2px)}
+.fw-card.decide{background:linear-gradient(135deg,rgba(201,168,76,0.08),rgba(201,168,76,0.03));border-color:rgba(201,168,76,0.25)}
+.fw-card.talk{background:linear-gradient(135deg,rgba(224,122,138,0.08),rgba(224,122,138,0.03));border-color:rgba(224,122,138,0.25)}
+.fw-card.grow{background:linear-gradient(135deg,rgba(91,155,213,0.08),rgba(91,155,213,0.03));border-color:rgba(91,155,213,0.25)}
+.fw-top{display:flex;align-items:center;gap:12px;margin-bottom:8px}
+.fw-icon{font-size:24px}
+.fw-label{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600}
+.fw-sub{font-size:12px;color:var(--dim);font-weight:300;line-height:1.5;margin-bottom:12px}
+.fw-action{font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:500}
+.fw-card.decide .fw-action{color:#C9A84C}.fw-card.talk .fw-action{color:#E07A8A}.fw-card.grow .fw-action{color:#5B9BD5}
+.nudge-card{margin:20px 24px 0;background:linear-gradient(135deg,rgba(201,168,76,0.06),rgba(201,168,76,0.02));border:1px solid rgba(201,168,76,0.2);border-radius:4px;padding:18px 18px 16px;position:relative;overflow:hidden}
+.nudge-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(201,168,76,0.6),transparent)}
+.nudge-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.nudge-from{display:flex;align-items:center;gap:8px}
+.nudge-sym{font-size:16px}.nudge-from-label{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--gold)}
+.nudge-cname{font-family:'Cormorant Garamond',serif;font-size:13px;margin-left:2px}
+.nudge-time{font-size:10px;color:var(--dim)}
+.nudge-msg{font-size:15px;line-height:1.7;font-weight:300;margin-bottom:14px;font-style:italic}
+.nudge-actions{display:flex;gap:10px}
+.nudge-btn{flex:1;background:transparent;border:1px solid var(--border);color:var(--dim);padding:8px;border-radius:2px;font-family:'Jost',sans-serif;font-size:11px;cursor:pointer;transition:all .2s;text-transform:uppercase;letter-spacing:1px}
+.nudge-btn:hover{border-color:rgba(201,168,76,.4);color:var(--gold)}
+.nudge-btn.primary{background:rgba(201,168,76,.12);border-color:rgba(201,168,76,.3);color:var(--gold)}
+.slabel{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--dim);padding:28px 24px 14px}
+.hlist{padding:0 24px;display:flex;flex-direction:column;gap:10px}
+.hcard{background:var(--s1);border:1px solid var(--border);border-radius:3px;padding:16px;cursor:pointer;transition:all .2s;display:flex;align-items:flex-start;gap:12px}
+.hcard:hover{transform:translateY(-1px);background:var(--s2)}
+.hcard-icon{font-size:18px;flex-shrink:0;margin-top:1px}
+.hcard-body{flex:1}
+.htop{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.htype{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--gold)}
+.hdate{font-size:11px;color:var(--dim)}
+.hq{font-size:14px;line-height:1.5;margin-bottom:8px;font-weight:400}
+.hstat{display:flex;align-items:center;gap:6px}
+.dot{width:6px;height:6px;border-radius:50%}
+.dot.pending{background:#C9A84C;box-shadow:0 0 6px rgba(201,168,76,.7)}
+.dot.decided{background:#5B9BD5;box-shadow:0 0 6px rgba(91,155,213,.7)}
+.dot.complete{background:#5BAD8A;box-shadow:0 0 6px rgba(91,173,138,.7)}
+.hstxt{font-size:11px;color:var(--dim);text-transform:capitalize}
+.frame-screen{min-height:100vh;padding:56px 24px 40px;animation:fadeUp .35s ease}
+.fstep{margin-bottom:32px}
+.fq{font-size:17px;font-weight:400;margin-bottom:12px;line-height:1.4}
+.finput{width:100%;background:var(--s1);border:1px solid var(--border);border-radius:2px;padding:14px 16px;color:var(--text);font-family:'Jost',sans-serif;font-size:14px;font-weight:300;outline:none;transition:border-color .25s;resize:none;min-height:68px;line-height:1.6}
+.finput::placeholder{color:var(--dim)}.finput:focus{border-color:rgba(201,168,76,.4)}
+.fbox{background:var(--s1);border:1px solid rgba(201,168,76,.2);border-radius:3px;padding:20px;margin-bottom:24px}
+.fboxtitle{font-family:'Cormorant Garamond',serif;font-size:14px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:16px}
+.frow{margin-bottom:12px}
+.frlabel{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:3px}
+.frval{font-size:14px;line-height:1.5}
+.talk-screen{min-height:100vh;padding:56px 24px 40px;animation:fadeUp .35s ease}
+.cpick{background:var(--s1);border:1px solid var(--border);border-radius:3px;padding:14px 16px;cursor:pointer;transition:all .25s;display:flex;align-items:center;gap:12px;margin-bottom:10px}
+.cpick:hover{border-color:rgba(201,168,76,.3);transform:translateX(3px)}
+.cpick-sym{font-size:22px;width:30px;text-align:center;flex-shrink:0}
+.cpick-name{font-family:'Cormorant Garamond',serif;font-size:16px;font-weight:500}
+.cpick-role{font-size:10px;letter-spacing:1px;opacity:.7}
+.grow-screen{min-height:100vh;padding:56px 24px 40px;animation:fadeUp .35s ease}
+.grow-stats{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:28px}
+.stat-card{background:var(--s1);border:1px solid var(--border);border-radius:3px;padding:16px;text-align:center}
+.stat-num{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:600;color:var(--gold);line-height:1}
+.stat-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-top:4px}
+.habit-item{background:var(--s1);border:1px solid var(--border);border-radius:3px;padding:14px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:all .2s;margin-bottom:10px}
+.habit-item:hover{border-color:rgba(201,168,76,.3)}
+.habit-check{width:20px;height:20px;border-radius:50%;border:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;transition:all .2s}
+.habit-item.done .habit-check{background:var(--gold);border-color:var(--gold);color:#07090E}
+.habit-text{flex:1;font-size:14px;font-weight:300}
+.habit-item.done .habit-text{color:var(--dim);text-decoration:line-through}
+.chat-screen{display:flex;flex-direction:column;height:100vh;animation:fadeUp .35s ease}
+.chat-head{padding:44px 20px 16px;background:var(--s1);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;flex-shrink:0;position:relative}
+.chat-mode-badge{position:absolute;top:48px;right:20px;font-size:8px;letter-spacing:2px;text-transform:uppercase;padding:3px 8px;border-radius:10px;font-weight:500}
+.chat-mode-badge.decide{background:rgba(201,168,76,.15);color:var(--gold);border:1px solid rgba(201,168,76,.3)}
+.chat-mode-badge.talk{background:rgba(224,122,138,.15);color:#E07A8A;border:1px solid rgba(224,122,138,.3)}
+.chat-mode-badge.grow{background:rgba(91,155,213,.15);color:#5B9BD5;border:1px solid rgba(91,155,213,.3)}
+.chat-back{font-size:22px;cursor:pointer;color:var(--dim);transition:color .2s;line-height:1}
+.chat-back:hover{color:var(--gold)}
+.chat-csym{font-size:26px;flex-shrink:0}
+.chat-cname{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600}
+.chat-ctitle{font-size:9px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
+.chat-msgs{flex:1;overflow-y:auto;padding:20px 20px 8px;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth}
+.chat-msgs::-webkit-scrollbar{width:0}
+.msg{max-width:92%;padding:14px 16px;font-size:14px;line-height:1.8;font-weight:300}
+.msg.ai{align-self:flex-start;background:var(--s1);border:1px solid var(--border);border-radius:2px 12px 12px 12px}
+.msg.user{align-self:flex-end;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.2);border-radius:12px 2px 12px 12px}
+.msg-who{font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;font-weight:600}
+.msg-text{white-space:pre-wrap;word-break:break-word;font-size:13.5px;line-height:1.8}
+.cursor{display:inline-block;width:2px;height:13px;background:var(--gold);margin-left:2px;vertical-align:middle;animation:blink-cursor .7s ease-in-out infinite}
+@keyframes blink-cursor{0%,100%{opacity:1}50%{opacity:0}}
+.thinking-portal{align-self:flex-start;background:var(--s1);border:1px solid rgba(201,168,76,.25);border-radius:2px 12px 12px 12px;padding:16px 18px;max-width:88%}
+.tp-label{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:12px;font-weight:500}
+.tp-paths{display:flex;flex-direction:column;gap:8px}
+.tp-path{display:flex;align-items:center;gap:10px;font-size:12px;color:var(--dim);font-weight:300}
+.tp-dot{width:5px;height:5px;border-radius:50%;background:var(--gold);flex-shrink:0;opacity:.2;animation:pathpulse 2s ease-in-out infinite}
+@keyframes pathpulse{0%,100%{opacity:.15;transform:scale(1)}50%{opacity:1;transform:scale(1.5)}}
+.tp-bar{height:1px;background:var(--border);margin-top:14px;overflow:hidden}
+.tp-bar-fill{height:100%;background:linear-gradient(90deg,transparent,var(--gold),transparent);animation:scanbar 1.8s ease-in-out infinite}
+@keyframes scanbar{0%{transform:translateX(-100%)}100%{transform:translateX(200%)}}
+.retry-btn{background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);color:var(--gold);padding:10px 20px;border-radius:2px;font-family:'Jost',sans-serif;font-size:12px;cursor:pointer;margin-top:10px;transition:all .2s;display:block;width:100%;text-align:center}
+.chat-bar{padding:12px 16px 28px;background:rgba(7,9,14,.95);border-top:1px solid var(--border);backdrop-filter:blur(12px);display:flex;align-items:flex-end;gap:10px;flex-shrink:0}
+.cinput{flex:1;background:var(--s1);border:1px solid var(--border);border-radius:3px;padding:11px 13px;color:var(--text);font-family:'Jost',sans-serif;font-size:14px;font-weight:300;outline:none;resize:none;max-height:120px;line-height:1.5;transition:border-color .2s}
+.cinput::placeholder{color:var(--dim)}.cinput:focus{border-color:rgba(201,168,76,.35)}
+.csend{background:var(--gold);border:none;color:#07090E;width:38px;height:38px;border-radius:3px;cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;font-weight:700}
+.csend:hover{background:var(--gold2)}.csend:disabled{opacity:.4;cursor:not-allowed}
+.bnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:420px;background:rgba(7,9,14,.96);border-top:1px solid var(--border);backdrop-filter:blur(20px);display:flex;padding:10px 0 22px;z-index:100}
+.bni{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;transition:all .2s;padding:4px 0}
+.bni-icon{font-size:18px;opacity:.3;transition:all .2s}
+.bni-label{font-size:8px;letter-spacing:1.5px;text-transform:uppercase;color:var(--dim);opacity:.3;transition:all .2s}
+.bni.on .bni-icon,.bni.on .bni-label{opacity:1}
+.bni.on .bni-label{color:var(--gold)}
+.nudge-setup{min-height:100vh;padding:56px 24px 120px;animation:fadeUp .35s ease}
+.time-opts{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:32px}
+.time-opt{background:var(--s1);border:1px solid var(--border);padding:10px 16px;border-radius:2px;font-family:'Jost',sans-serif;font-size:13px;cursor:pointer;transition:all .2s;color:var(--dim)}
+.time-opt.sel{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.08)}
+.time-label{font-size:11px;letter-spacing:3px;color:var(--dim);text-transform:uppercase;margin-bottom:12px}
+
+/* ── ADMIN OVERLAY ── */
+.dm-admin-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;align-items:center;justify-content:center;z-index:99999}
+.dm-admin-box{background:#0C0F18;border:1px solid rgba(201,168,76,.35);border-radius:4px;padding:2rem;width:90%;max-width:380px;box-shadow:0 0 40px rgba(201,168,76,.12)}
+.dm-admin-title{font-family:'Cormorant Garamond',serif;color:var(--gold);font-size:1rem;letter-spacing:0.2em;margin-bottom:1.2rem;text-align:center;text-transform:uppercase}
+.dm-admin-input{width:100%;padding:0.7rem 1rem;background:#07090E;border:1px solid rgba(201,168,76,.3);color:var(--gold);font-family:'Jost',sans-serif;font-size:1rem;letter-spacing:0.15em;border-radius:2px;outline:none;margin-bottom:1rem}
+.dm-admin-input::placeholder{color:#444}
+.dm-admin-input:focus{border-color:var(--gold)}
+.dm-admin-btn{width:100%;padding:0.7rem;background:linear-gradient(135deg,#C9A84C,#A8832A);border:none;color:#07090E;font-family:'Cormorant Garamond',serif;font-size:0.85rem;letter-spacing:0.15em;text-transform:uppercase;cursor:pointer;border-radius:2px;transition:all .2s}
+.dm-admin-btn:hover{box-shadow:0 4px 20px rgba(201,168,76,.3)}
+.dm-admin-err{color:#FF6060;font-size:0.78rem;text-align:center;margin-top:0.5rem}
+.dm-admin-close{margin-top:1rem;width:100%;padding:0.5rem;background:transparent;border:1px solid var(--border);color:var(--dim);font-size:0.78rem;cursor:pointer;border-radius:2px;letter-spacing:0.1em;font-family:'Jost',sans-serif}
+.dm-admin-dash{background:#0C0F18;border:1px solid rgba(201,168,76,.35);border-radius:4px;padding:1.5rem;width:94%;max-width:500px;max-height:88vh;overflow-y:auto;box-shadow:0 0 40px rgba(201,168,76,.12)}
+.dm-admin-dash h2{font-family:'Cormorant Garamond',serif;color:var(--gold);font-size:1rem;letter-spacing:0.2em;margin-bottom:1.2rem;text-align:center;text-transform:uppercase}
+.dm-tier-btns{display:flex;gap:0.5rem;flex-wrap:wrap;margin-bottom:1rem}
+.dm-tier-btn{flex:1;padding:0.6rem 0.5rem;background:#07090E;border:1px solid rgba(201,168,76,.25);color:var(--dim);font-size:0.78rem;letter-spacing:0.08em;cursor:pointer;border-radius:2px;transition:all .2s;font-family:'Jost',sans-serif;text-transform:uppercase}
+.dm-tier-btn.active{background:rgba(201,168,76,.15);color:var(--gold);border-color:var(--gold)}
+.dm-stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-bottom:1rem}
+.dm-stat{background:#07090E;border:1px solid var(--border);padding:0.8rem;border-radius:2px}
+.dm-stat-label{font-size:0.7rem;color:var(--dim);letter-spacing:0.1em;text-transform:uppercase}
+.dm-stat-val{font-size:1.4rem;color:var(--gold);font-weight:700;margin-top:0.2rem;font-family:'Cormorant Garamond',serif}
+.dm-tier-notes{font-size:0.72rem;color:var(--dim);line-height:1.8;background:#07090E;padding:0.8rem;border-radius:2px;border:1px solid var(--border);margin-bottom:1rem}
+.dm-tier-notes-head{color:rgba(201,168,76,.6);margin-bottom:0.4rem;letter-spacing:0.1em;text-transform:uppercase;font-size:0.65rem}
+.dm-admin-indicator{position:fixed;bottom:90px;right:16px;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);border-radius:2px;padding:4px 10px;font-size:0.6rem;color:var(--gold);letter-spacing:0.15em;text-transform:uppercase;cursor:pointer;z-index:200;font-family:'Jost',sans-serif}
+`;
+
+function FrameStep({ fq, value, active, locked, onSubmit }) {
+  const [val, setVal] = useState(value || "");
+  if (locked) return (
+    <div className="fstep">
+      <div className="fq" style={{ color: "var(--dim)", fontSize: 13 }}>{fq.prompt}</div>
+      <div style={{ fontSize: 14, paddingLeft: 4, color: "var(--text)" }}>{value}</div>
+    </div>
+  );
+  return (
+    <div className="fstep">
+      <div className="fq">{fq.prompt}</div>
+      <textarea className="finput" placeholder={fq.placeholder} value={val} onChange={e => setVal(e.target.value)} autoFocus={active} rows={2} />
+      {active && <button className="btn-full" style={{ marginTop: 10 }} disabled={!val.trim()} onClick={() => onSubmit(val.trim())}>Next</button>}
+    </div>
+  );
 }
 
-async function callQuantumDecide(situation, companion, pathCount, outcomeCount) {
-  const c = COMPANIONS[companion];
-  const systemPrompt = `You are ${companion}, ${c.title} (${c.role}) in the Day Masters quantum decision engine. ${c.decideIntro} Respond ONLY with valid JSON — no markdown, no explanation, nothing else.`;
-
-  const userPrompt = `Decision situation: "${situation}"
-
-Generate exactly ${pathCount} quantum decision paths, each with exactly ${outcomeCount} outcome(s).
-
-Return ONLY this JSON structure:
-{
-  "paths": [
-    {
-      "label": "Path Alpha",
-      "text": "1-2 sentence description of this decision path",
-      "outcomes": [
-        {
-          "label": "Best Case",
-          "text": "What happens if this unfolds this way"
-        }
-      ]
-    }
-  ]
+function ThinkingPortal({ name, mode }) {
+  const lines = {
+    decide: ["Feeling the weight of your situation", "Identifying your core paths", "Mapping outcomes for each path", "Finding what most people miss", "Preparing your recommendation"],
+    talk: ["Opening a safe space for you", "Tuning in to what you need", "Preparing to listen deeply"],
+    grow: ["Checking in on your journey", "Reviewing your commitments", "Building your growth response"],
+  };
+  return (
+    <div className="thinking-portal">
+      <div className="tp-label">{name} is with you</div>
+      <div className="tp-paths">
+        {(lines[mode] || lines.decide).map((t, i) => (
+          <div key={i} className="tp-path">
+            <div className="tp-dot" style={{ animationDelay: `${i * 0.25}s` }} />
+            <span>{t}</span>
+          </div>
+        ))}
+      </div>
+      <div className="tp-bar"><div className="tp-bar-fill" /></div>
+    </div>
+  );
 }
 
-Path labels must be: Path Alpha, Path Beta, Path Gamma, Path Delta, Path Epsilon, Path Zeta (use only as many as needed).
-Outcome labels must be: Best Case, Most Likely, The Challenge, Wildcard, The Cost (use only as many as needed).`;
-
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
-      max_tokens: 1000,
-      system: systemPrompt,
-      messages: [{ role: "user", content: userPrompt }],
-    }),
-  });
-  const data = await res.json();
-  const raw = data.content?.[0]?.text || "{}";
-  const clean = raw.replace(/```json|```/g, "").trim();
-  return JSON.parse(clean);
+function NudgeCard({ companion, onRespond, onDismiss }) {
+  const nudge = companion.nudges[new Date().getDay() % companion.nudges.length];
+  const hours = new Date().getHours();
+  const timeLabel = hours < 12 ? "Morning Nudge" : hours < 17 ? "Afternoon Check-In" : "Evening Reflection";
+  return (
+    <div className="nudge-card">
+      <div className="nudge-top">
+        <div className="nudge-from">
+          <span className="nudge-sym" style={{ color: companion.color }}>{companion.symbol}</span>
+          <span className="nudge-from-label">{timeLabel} from</span>
+          <span className="nudge-cname">{companion.name}</span>
+        </div>
+        <span className="nudge-time">{new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+      </div>
+      <div className="nudge-msg">"{nudge}"</div>
+      <div className="nudge-actions">
+        <button className="nudge-btn primary" onClick={onRespond}>Respond</button>
+        <button className="nudge-btn" onClick={onDismiss}>Acknowledge</button>
+      </div>
+    </div>
+  );
 }
 
-// ─── MAIN COMPONENT ───────────────────────────────────────────────────────────
 export default function DayMasters() {
-  useEffect(() => { injectStyles(); }, []);
+  // ── Original state (untouched) ──
+  const [screen, setScreen] = useState("splash");
+  const [assessIdx, setAssessIdx] = useState(0);
+  const [answers, setAnswers] = useState({});
+  const [companion, setCompanion] = useState(null);
+  const [nav, setNav] = useState("home");
+  const [frame, setFrame] = useState({});
+  const [frameStep, setFrameStep] = useState(0);
+  const [frameConfirmed, setFrameConfirmed] = useState(false);
+  const [talkCompanion, setTalkCompanion] = useState(null);
+  const [habits, setHabits] = useState(HABIT_DEFAULTS);
+  const [messages, setMessages] = useState([]);
+  const [chatInput, setChatInput] = useState("");
+  const [chatMode, setChatMode] = useState("decide");
+  const [thinking, setThinking] = useState(false);
+  const [streaming, setStreaming] = useState(false);
+  const [lastPrompt, setLastPrompt] = useState(null);
+  const [nudgeEnabled, setNudgeEnabled] = useState(false);
+  const [nudgeTime, setNudgeTime] = useState("6:00 AM");
+  const [nudgeDismissed, setNudgeDismissed] = useState(false);
+  const msgsRef = useRef(null);
 
-  // Splash
-  const [splashVisible, setSplashVisible] = useState(true);
-  const [splashFade, setSplashFade] = useState(false);
-  const [logoError, setLogoError] = useState(false);
-  const tapCount = useRef(0);
-  const tapTimer = useRef(null);
-  const logoRef = useRef(null);
-
-  // Admin
+  // ── Admin state (new — only addition) ──
   const [showAdminPrompt, setShowAdminPrompt] = useState(false);
   const [showAdminDash, setShowAdminDash] = useState(false);
   const [adminInput, setAdminInput] = useState("");
   const [adminErr, setAdminErr] = useState("");
   const [isAdmin, setIsAdmin] = useState(false);
   const [simTier, setSimTier] = useState("free");
-
-  // App state
-  const [activeCompanion, setActiveCompanion] = useState("Solar");
-  const [activeTab, setActiveTab] = useState("talk");
-  const [messages, setMessages] = useState([]);
-  const [inputVal, setInputVal] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const [feedback, setFeedback] = useState({});
-  const [fbComment, setFbComment] = useState({});
-  const [goals, setGoals] = useState([
-    { id: 1, text: "Set your intention for today", done: false },
-    { id: 2, text: "Complete your most important task", done: false },
-    { id: 3, text: "Reflect before you sleep", done: false },
-  ]);
-  const [newGoal, setNewGoal] = useState("");
-  const [decideQ, setDecideQ] = useState("");
-  const [paths, setPaths] = useState(null);
-  const [expandedPath, setExpandedPath] = useState(null);
-  const [decideLoading, setDecideLoading] = useState(false);
-  const [decideErr, setDecideErr] = useState("");
-  const [notif, setNotif] = useState(null);
-  const chatEndRef = useRef(null);
-
-  // Time-based in-app prompt (no push toggle — mobile only feature)
-  useEffect(() => {
-    const hour = new Date().getHours();
-    if (hour >= 6 && hour < 10) setNotif("🌅 Good morning. What does today need from you?");
-    else if (hour >= 12 && hour < 14) setNotif("⚡ Midday check-in — are you on track with your Day?");
-    else if (hour >= 17 && hour < 20) setNotif("🔔 Closing bell. What did you accomplish today?");
-  }, []);
+  const tapCount = useRef(0);
+  const tapTimer = useRef(null);
+  const orbRef = useRef(null);
 
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isLoading]);
+    if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight;
+  }, [messages, thinking]);
 
-  // ── Logo tap Easter egg → admin prompt
-  const handleLogoTap = () => {
-    if (logoRef.current) {
-      logoRef.current.style.animation = "none";
-      logoRef.current.style.transform = "scale(0.88)";
-      setTimeout(() => {
-        if (logoRef.current) {
-          logoRef.current.style.transform = "scale(1)";
-          logoRef.current.style.animation = "";
+  // ── Original functions (untouched) ──
+  function pickOpt(opt) {
+    const updated = { ...answers, [assessIdx]: opt };
+    setAnswers(updated);
+    if (assessIdx < ASSESS_QUESTIONS.length - 1) setTimeout(() => setAssessIdx(assessIdx + 1), 280);
+    else setTimeout(() => setScreen("companions"), 350);
+  }
+
+  function saveFrameStep(val) {
+    const key = FRAME_QUESTIONS[frameStep].key;
+    const updated = { ...frame, [key]: val };
+    setFrame(updated);
+    if (frameStep < FRAME_QUESTIONS.length - 1) setFrameStep(frameStep + 1);
+    else setFrameConfirmed(true);
+  }
+
+  const API_KEY = process.env.REACT_APP_ANTHROPIC_API_KEY;
+
+  async function callAI(systemPrompt, msgs) {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": API_KEY,
+        "anthropic-version": "2023-06-01",
+        "anthropic-dangerous-direct-browser-access": "true"
+      },
+      body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 900, system: systemPrompt, messages: msgs }),
+    });
+    if (!res.ok) throw new Error("API error");
+    const data = await res.json();
+    return data.content?.[0]?.text || "";
+  }
+
+  async function runAI(systemPrompt, msgs, mode) {
+    setThinking(true);
+    setLastPrompt({ systemPrompt, msgs, mode });
+    try {
+      const res = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-api-key": API_KEY,
+          "anthropic-version": "2023-06-01",
+          "anthropic-dangerous-direct-browser-access": "true"
+        },
+        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 900, stream: true, system: systemPrompt, messages: msgs }),
+      });
+      if (!res.ok || !res.body) throw new Error("stream_unavailable");
+      setThinking(false);
+      setStreaming(true);
+      setMessages(prev => [...prev, { role: "ai", text: "" }]);
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let accumulated = "";
+      let gotData = false;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          if (!line.startsWith("data: ")) continue;
+          const data = line.slice(6).trim();
+          if (data === "[DONE]") continue;
+          try {
+            const p = JSON.parse(data);
+            if (p.type === "content_block_delta" && p.delta?.text) {
+              accumulated += p.delta.text;
+              gotData = true;
+              setMessages(prev => { const u = [...prev]; u[u.length - 1] = { role: "ai", text: accumulated }; return u; });
+            }
+          } catch {}
         }
-      }, 150);
+      }
+      setStreaming(false);
+      if (!gotData) throw new Error("empty_stream");
+    } catch {
+      setStreaming(false);
+      setThinking(true);
+      try {
+        const text = await callAI(systemPrompt, msgs);
+        setThinking(false);
+        setMessages(prev => { const filtered = prev.filter(m => !(m.role === "ai" && m.text === "")); return [...filtered, { role: "ai", text }]; });
+      } catch {
+        setThinking(false);
+        setMessages(prev => { const filtered = prev.filter(m => !(m.role === "ai" && m.text === "")); return [...filtered, { role: "ai", text: "I hit a snag. Tap Retry to try again." }]; });
+      }
+    }
+  }
+
+  async function retryLast() {
+    if (!lastPrompt || thinking || streaming) return;
+    setMessages(prev => prev.filter(m => !(m.role === "ai" && (m.text === "" || m.text.includes("hit a snag")))));
+    await runAI(lastPrompt.systemPrompt, lastPrompt.msgs, lastPrompt.mode);
+  }
+
+  async function startTalk(c) {
+    const intro = c.name + " is here with you.\n\nNo agenda. No decisions needed. Just talk. What is on your mind today?";
+    setChatMode("talk");
+    setMessages([{ role: "ai", text: intro }]);
+    setScreen("chat");
+  }
+
+  async function startGrow() {
+    const c = companion;
+    const doneCount = habits.filter(h => h.done).length;
+    const intro = c.name + " is checking in on your growth.\n\n" + doneCount + " of " + habits.length + " habits done today. Let us talk about where you are.";
+    const prompt = "User checking in on growth. " + doneCount + " of " + habits.length + " daily habits done today. Open a warm motivating check-in. Ask how they feel about their progress.";
+    setChatMode("grow");
+    setMessages([{ role: "ai", text: intro }]);
+    setScreen("chat");
+    await runAI(getVoice(c, "grow"), [{ role: "user", content: prompt }], "grow");
+  }
+
+  async function launchDecideChat() {
+    const c = companion;
+    const intro = c.name + " has your full frame.\n\nGoal: " + frame.goal + "\nTimeframe: " + frame.timeframe + "\n\nMapping your paths now...";
+    const prompt = "Decision Frame:\nDecision: " + frame.decision + "\nGoal: " + frame.goal + "\nSuccess: " + frame.success + "\nTimeframe: " + frame.timeframe + "\nObstacle: " + frame.obstacle + "\n\nAcknowledge the weight first. Then present exactly 3 paths. Be specific to their actual goal.";
+    setChatMode("decide");
+    setMessages([{ role: "ai", text: intro }]);
+    setScreen("chat");
+    await runAI(getVoice(c, "decide"), [{ role: "user", content: prompt }], "decide");
+  }
+
+  async function sendMsg() {
+    if (!chatInput.trim() || thinking || streaming) return;
+    const txt = chatInput.trim();
+    setChatInput("");
+    const updated = [...messages, { role: "user", text: txt }];
+    setMessages(updated);
+    const activeComp = chatMode === "talk" && talkCompanion ? talkCompanion : companion;
+    const voice = getVoice(activeComp, chatMode);
+    const history = updated.filter((_, i) => i > 0).map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.text }));
+    await runAI(voice, history, chatMode);
+  }
+
+  // ── Admin handlers (new) ──
+  function handleOrbTap() {
+    if (orbRef.current) {
+      orbRef.current.style.transform = "scale(0.88)";
+      setTimeout(() => { if (orbRef.current) orbRef.current.style.transform = ""; }, 150);
     }
     tapCount.current += 1;
     clearTimeout(tapTimer.current);
@@ -618,149 +550,34 @@ export default function DayMasters() {
     } else {
       tapTimer.current = setTimeout(() => { tapCount.current = 0; }, 1500);
     }
-  };
+  }
 
-  const handleEnter = () => {
-    setSplashFade(true);
-    setTimeout(() => setSplashVisible(false), 800);
-    const c = COMPANIONS[activeCompanion];
-    setMessages([{ id: Date.now(), from: "companion", text: c.voice, companion: activeCompanion, isIntro: true }]);
-  };
-
-  // ── Admin auth
-  const handleAdminSubmit = () => {
+  function handleAdminSubmit() {
     if (adminInput.trim().toUpperCase() === ADMIN_KEY) {
       setIsAdmin(true);
       setShowAdminPrompt(false);
-      setAdminInput("");
-      setAdminErr("");
-      if (!splashVisible) setShowAdminDash(true);
+      setAdminInput(""); setAdminErr("");
+      setShowAdminDash(true);
     } else {
       setAdminErr("Invalid key. Access denied.");
     }
-  };
+  }
 
-  // ── Companion switch
-  const switchCompanion = (name) => {
-    const tier = isAdmin ? simTier : "free";
-    const isLocked = COMPANIONS[name].proOnly && tier === "free";
-    if (isLocked) return;
-    setActiveCompanion(name);
-    if (activeTab === "talk") {
-      const c = COMPANIONS[name];
-      setMessages(prev => [
-        ...prev,
-        { id: Date.now(), from: "companion", text: c.voice, companion: name, isIntro: true },
-      ]);
-    }
-  };
-
-  // ── Send chat message — FIXED: clean conversation history, no duplicates
-  const sendMessage = async () => {
-    if (!inputVal.trim() || isLoading) return;
-    const userText = inputVal.trim();
-    const userMsg = { id: Date.now(), from: "user", text: userText };
-
-    // Build clean alternating API history from existing messages (before adding new one)
-    // Skip intro/voice messages — they're not part of real conversation history
-    const conversationMsgs = messages.filter(m => !m.isIntro);
-    const apiMessages = [];
-    let lastRole = null;
-    for (const m of conversationMsgs.slice(-14)) {
-      const role = m.from === "user" ? "user" : "assistant";
-      if (role !== lastRole) {
-        apiMessages.push({ role, content: m.text });
-        lastRole = role;
-      }
-    }
-    // Add the new user message
-    if (lastRole !== "user") {
-      apiMessages.push({ role: "user", content: userText });
-    }
-    // Edge case: if history ended on user, replace last user entry
-    if (lastRole === "user" && apiMessages.length > 0) {
-      apiMessages[apiMessages.length - 1] = { role: "user", content: userText };
-    }
-
-    setMessages(prev => [...prev, userMsg]);
-    setInputVal("");
-    setIsLoading(true);
-
-    try {
-      const c = COMPANIONS[activeCompanion];
-      const reply = await callCompanion(c.systemPrompt, apiMessages);
-      setMessages(prev => [...prev, { id: Date.now(), from: "companion", text: reply, companion: activeCompanion }]);
-    } catch {
-      setMessages(prev => [...prev, { id: Date.now(), from: "companion", text: "Lost the signal. Try again.", companion: activeCompanion }]);
-    }
-    setIsLoading(false);
-  };
-
-  // ── Quantum Decide — AI-powered, tier-gated
-  const handleDecide = async () => {
-    if (!decideQ.trim() || decideLoading) return;
-    const tier = isAdmin ? simTier : "free";
-    const { pathCount, outcomeCount } = TIER_CONFIG[tier];
-    setDecideLoading(true);
-    setDecideErr("");
-    setPaths(null);
-    setExpandedPath(null);
-
-    try {
-      const result = await callQuantumDecide(decideQ, activeCompanion, pathCount, outcomeCount);
-      if (result.paths?.length) {
-        setPaths(result.paths);
-      } else {
-        setDecideErr("Couldn't generate paths. Try rephrasing your situation.");
-      }
-    } catch {
-      setDecideErr("Connection lost. Check your signal and try again.");
-    }
-    setDecideLoading(false);
-  };
-
-  const c = COMPANIONS[activeCompanion];
-  const tier = isAdmin ? simTier : "free";
-  const tierCfg = TIER_CONFIG[tier];
+  const activeComp = chatMode === "talk" && talkCompanion ? talkCompanion : companion;
+  const lastMsg = messages[messages.length - 1];
+  const showRetry = !thinking && !streaming && lastMsg?.text?.includes("hit a snag");
+  const doneHabits = habits.filter(h => h.done).length;
+  const showNudge = nudgeEnabled && !nudgeDismissed && companion;
 
   return (
     <>
-      {/* NOTIFICATION BANNER */}
-      {notif && (
-        <div className="dm-notif-banner">
-          <span>{notif}</span>
-          <button className="dm-notif-close" onClick={() => setNotif(null)}>×</button>
-        </div>
-      )}
+      <style>{css}</style>
 
-      {/* SPLASH */}
-      {splashVisible && (
-        <div className={`dm-splash${splashFade ? " fade-out" : ""}`}>
-          <div className="dm-logo-wrap" onClick={handleLogoTap}>
-            {!logoError ? (
-              <img
-                ref={logoRef}
-                src="/logo.png"
-                alt="Day Masters"
-                className="dm-logo"
-                onError={() => setLogoError(true)}
-              />
-            ) : (
-              <div ref={logoRef} className="dm-logo-fallback">☀️</div>
-            )}
-          </div>
-          <div className="dm-title">DAY MASTERS</div>
-          <div className="dm-tagline">Your quantum compass</div>
-          <button className="dm-enter-btn" onClick={handleEnter}>ENTER YOUR DAY</button>
-          <div className="dm-tap-hint">tap logo 5× for access</div>
-        </div>
-      )}
-
-      {/* ADMIN KEY PROMPT */}
+      {/* ── ADMIN KEY PROMPT ── */}
       {showAdminPrompt && (
         <div className="dm-admin-overlay">
           <div className="dm-admin-box">
-            <div className="dm-admin-title">⬡ ADMINISTRATIVE ACCESS</div>
+            <div className="dm-admin-title">⬡ Administrative Access</div>
             <input
               className="dm-admin-input"
               type="password"
@@ -770,7 +587,7 @@ export default function DayMasters() {
               onKeyDown={e => e.key === "Enter" && handleAdminSubmit()}
               autoFocus
             />
-            <button className="dm-admin-btn" onClick={handleAdminSubmit}>AUTHENTICATE</button>
+            <button className="dm-admin-btn" onClick={handleAdminSubmit}>Authenticate</button>
             {adminErr && <div className="dm-admin-err">{adminErr}</div>}
             <button className="dm-admin-close" onClick={() => { setShowAdminPrompt(false); setAdminErr(""); setAdminInput(""); }}>
               Cancel
@@ -779,321 +596,357 @@ export default function DayMasters() {
         </div>
       )}
 
-      {/* ADMIN DASHBOARD */}
+      {/* ── ADMIN DASHBOARD ── */}
       {showAdminDash && (
         <div className="dm-admin-overlay">
           <div className="dm-admin-dash">
-            <h2>⬡ ADMIN DASHBOARD</h2>
+            <h2>⬡ Admin Dashboard</h2>
             <div style={{ marginBottom: "1rem" }}>
-              <div style={{ fontSize: "0.7rem", color: "var(--text-dim)", letterSpacing: "0.1em", marginBottom: "0.5rem" }}>SIMULATE TIER</div>
+              <div style={{ fontSize: "0.7rem", color: "var(--dim)", letterSpacing: "0.1em", marginBottom: "0.5rem", textTransform: "uppercase" }}>Simulate Tier</div>
               <div className="dm-tier-btns">
-                {["free", "pro", "premium"].map(t => (
-                  <button key={t} className={`dm-tier-btn${simTier === t ? " active" : ""}`} onClick={() => setSimTier(t)}>
-                    {t.toUpperCase()}
+                {Object.entries(TIERS).map(([key, t]) => (
+                  <button key={key} className={`dm-tier-btn${simTier === key ? " active" : ""}`} onClick={() => setSimTier(key)}>
+                    {t.label}
                   </button>
                 ))}
               </div>
             </div>
             <div className="dm-stat-grid">
-              <div className="dm-stat"><div className="dm-stat-label">ACTIVE TIER</div><div className="dm-stat-val">{simTier.toUpperCase()}</div></div>
-              <div className="dm-stat"><div className="dm-stat-label">COMPANIONS</div><div className="dm-stat-val">{simTier === "free" ? "2" : "6"}</div></div>
-              <div className="dm-stat"><div className="dm-stat-label">QUANTUM PATHS</div><div className="dm-stat-val">{TIER_CONFIG[simTier].pathCount}</div></div>
-              <div className="dm-stat"><div className="dm-stat-label">OUTCOMES/PATH</div><div className="dm-stat-val">{TIER_CONFIG[simTier].outcomeCount}</div></div>
+              <div className="dm-stat"><div className="dm-stat-label">Active Tier</div><div className="dm-stat-val">{TIERS[simTier].label}</div></div>
+              <div className="dm-stat"><div className="dm-stat-label">Quantum Paths</div><div className="dm-stat-val">{TIERS[simTier].paths}</div></div>
+              <div className="dm-stat"><div className="dm-stat-label">Outcomes / Path</div><div className="dm-stat-val">{TIERS[simTier].outcomes}</div></div>
+              <div className="dm-stat"><div className="dm-stat-label">Solar Access</div><div className="dm-stat-val" style={{ fontSize: "1rem" }}>{simTier === "premium" ? "✓" : "✗"}</div></div>
             </div>
-            <div style={{ fontSize: "0.72rem", color: "var(--text-dim)", lineHeight: "1.8", marginBottom: "1rem", background: "#0A0A12", padding: "0.8rem", borderRadius: "2px", border: "1px solid #1A1A28" }}>
-              <div style={{ color: "var(--gold-dim)", marginBottom: "0.4rem", letterSpacing: "0.1em" }}>TIER STRUCTURE</div>
-              <div>Free: Solar + Sofia only · 2 paths · 1 outcome · no memory</div>
-              <div>Pro $19.99: All 6 companions · 4 paths · 3 outcomes · basic memory</div>
-              <div>Premium $29.99: All 6 · 6 paths · 5 outcomes · evolving relationships</div>
+            <div className="dm-tier-notes">
+              <div className="dm-tier-notes-head">Tier Structure</div>
+              <div>Free · Sofia + Drax · 2 paths · 2 outcomes each</div>
+              <div>Pro $19.99 · + Stewart, Aries, Mary · 4 paths · 4 outcomes</div>
+              <div>Premium $29.99 · + Solar (Super Agent) · 8 paths · 6 outcomes</div>
             </div>
             <button className="dm-admin-close" onClick={() => setShowAdminDash(false)}>Close Dashboard</button>
           </div>
         </div>
       )}
 
-      {/* MAIN APP */}
-      {!splashVisible && (
-        <div className="dm-app">
-
-          {/* Header */}
-          <div className="dm-header">
-            {!logoError ? (
-              <img src="/logo.png" alt="DM" className="dm-header-logo" onError={() => setLogoError(true)} />
-            ) : (
-              <span style={{ fontSize: "1.4rem" }}>☀️</span>
-            )}
-            <div className="dm-header-title">DAY MASTERS</div>
-            <div className="dm-day-badge">
-              {new Date().toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" })}
-              {isAdmin && (
-                <div style={{ color: "var(--gold-dim)", fontSize: "0.6rem", cursor: "pointer", marginTop: "2px" }} onClick={() => setShowAdminDash(true)}>
-                  ⬡ ADMIN · {tierCfg.label}
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Companions */}
-          <div className="dm-companions">
-            {Object.entries(COMPANIONS).map(([name, data]) => {
-              const locked = data.proOnly && tier === "free";
-              return (
-                <button
-                  key={name}
-                  className={`dm-companion-btn${activeCompanion === name ? " active" : ""}${locked ? " locked" : ""}`}
-                  onClick={() => switchCompanion(name)}
-                  title={locked ? "Upgrade to Pro to unlock" : name}
-                >
-                  <div
-                    className="dm-companion-avatar"
-                    style={{ background: data.bg, "--companion-color": data.color }}
-                  >
-                    {locked ? "🔒" : data.emoji}
-                  </div>
-                  <div className="dm-companion-name">{name}</div>
-                  {locked && <div className="dm-lock-icon">PRO</div>}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Tabs */}
-          <div className="dm-tabs">
-            {[["talk", "💬 Talk"], ["decide", "⚡ Decide"], ["grow", "🌱 Grow"]].map(([tab, label]) => (
-              <button key={tab} className={`dm-tab${activeTab === tab ? " active" : ""}`} onClick={() => setActiveTab(tab)}>
-                {label}
-              </button>
-            ))}
-          </div>
-
-          {/* ── TALK ── */}
-          {activeTab === "talk" && (
-            <>
-              <div className="dm-chat-area">
-                {messages.map((msg) => {
-                  const mc = msg.companion ? COMPANIONS[msg.companion] : null;
-                  return (
-                    <div key={msg.id}>
-                      <div
-                        className={`dm-msg ${msg.from}`}
-                        style={mc ? { "--companion-color": mc.color } : {}}
-                      >
-                        {msg.from === "companion" && (
-                          <div className="dm-msg-name">{msg.companion} · {mc?.role}</div>
-                        )}
-                        {msg.text}
-                      </div>
-                      {msg.from === "companion" && !msg.isIntro && (
-                        <div className="dm-feedback">
-                          <button
-                            className={`dm-fb-btn${feedback[msg.id] === "up" ? " selected" : ""}`}
-                            onClick={() => setFeedback(f => ({ ...f, [msg.id]: f[msg.id] === "up" ? null : "up" }))}
-                          >👍</button>
-                          <button
-                            className={`dm-fb-btn${feedback[msg.id] === "down" ? " selected" : ""}`}
-                            onClick={() => setFeedback(f => ({ ...f, [msg.id]: f[msg.id] === "down" ? null : "down" }))}
-                          >👎</button>
-                          {feedback[msg.id] === "down" && (
-                            <>
-                              <input
-                                className="dm-fb-input"
-                                placeholder="What missed?"
-                                value={fbComment[msg.id] || ""}
-                                onChange={e => setFbComment(f => ({ ...f, [msg.id]: e.target.value }))}
-                              />
-                              <button className="dm-fb-send">Send</button>
-                            </>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-                {isLoading && (
-                  <div className="dm-msg companion" style={{ "--companion-color": c.color }}>
-                    <div className="dm-msg-name">{activeCompanion} · {c.role}</div>
-                    <div className="dm-typing"><span /><span /><span /></div>
-                  </div>
-                )}
-                <div ref={chatEndRef} />
-              </div>
-              <div className="dm-input-row">
-                <input
-                  className="dm-input"
-                  placeholder={`Talk to ${activeCompanion}...`}
-                  value={inputVal}
-                  onChange={e => setInputVal(e.target.value)}
-                  onKeyDown={e => e.key === "Enter" && sendMessage()}
-                  disabled={isLoading}
-                />
-                <button className="dm-send-btn" onClick={sendMessage} disabled={isLoading || !inputVal.trim()}>
-                  SEND
-                </button>
-              </div>
-            </>
-          )}
-
-          {/* ── DECIDE ── */}
-          {activeTab === "decide" && (
-            <div className="dm-decide-area">
-              {!paths && !decideLoading ? (
-                <>
-                  <div className="dm-decide-question">What decision are you facing?</div>
-                  <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
-                    <input
-                      className="dm-input"
-                      placeholder="Describe your situation..."
-                      value={decideQ}
-                      onChange={e => setDecideQ(e.target.value)}
-                      onKeyDown={e => e.key === "Enter" && handleDecide()}
-                    />
-                    <button className="dm-send-btn" onClick={handleDecide} disabled={!decideQ.trim()}>GO</button>
-                  </div>
-                  <div style={{ fontSize: "0.8rem", color: "var(--text-dim)", textAlign: "center", lineHeight: "1.6", marginBottom: "1rem" }}>
-                    {c.decideIntro}
-                  </div>
-                  {tier === "free" && (
-                    <div className="dm-free-gate">
-                      <div className="dm-free-gate-title">FREE PLAN · 2 Paths · 1 Outcome Each</div>
-                      <div className="dm-free-gate-text">
-                        Upgrade to Pro for 4 paths with 3 outcomes, or Premium for 6 paths with 5 outcomes each — and full companion access.
-                      </div>
-                    </div>
-                  )}
-                  {decideErr && (
-                    <div style={{ color: "#FF6060", fontSize: "0.8rem", textAlign: "center", marginTop: "0.8rem" }}>{decideErr}</div>
-                  )}
-                </>
-              ) : decideLoading ? (
-                <div className="dm-decide-spinner">
-                  <div className="dm-spinner" />
-                  {activeCompanion} is reading the quantum field...
-                </div>
-              ) : (
-                <>
-                  <div style={{ fontFamily: "'Cinzel', serif", fontSize: "0.82rem", color: "var(--gold-dim)", textAlign: "center", marginBottom: "0.4rem" }}>
-                    DECISION
-                  </div>
-                  <div style={{ fontSize: "0.9rem", color: "var(--text)", textAlign: "center", marginBottom: "0.5rem", lineHeight: "1.5" }}>
-                    "{decideQ}"
-                  </div>
-                  <div style={{ fontSize: "0.72rem", color: "var(--text-dim)", textAlign: "center", marginBottom: "1rem", letterSpacing: "0.05em" }}>
-                    {c.decideIntro}
-                  </div>
-
-                  <div className="dm-paths">
-                    {paths.map((path, i) => (
-                      <div key={i} className="dm-path" onClick={() => setExpandedPath(expandedPath === i ? null : i)}>
-                        <div className="dm-path-label">
-                          <span>{path.label}</span>
-                          <span>{expandedPath === i ? "▲" : "▼"}</span>
-                        </div>
-                        <div className="dm-path-text">{path.text}</div>
-                        {expandedPath === i && path.outcomes?.length > 0 && (
-                          <div className="dm-path-outcomes">
-                            {path.outcomes.map((o, j) => (
-                              <div key={j} className="dm-outcome">
-                                <div className="dm-outcome-label">{o.label}</div>
-                                {o.text}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-
-                  <button
-                    onClick={() => { setPaths(null); setDecideQ(""); setDecideErr(""); }}
-                    style={{ marginTop: "1rem", background: "none", border: "1px solid #222", color: "var(--text-dim)", padding: "0.6rem", borderRadius: "2px", cursor: "pointer", width: "100%", fontSize: "0.8rem", letterSpacing: "0.1em" }}
-                  >
-                    NEW DECISION
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-
-          {/* ── GROW ── */}
-          {activeTab === "grow" && (
-            <div className="dm-grow-area">
-              <div className="dm-grow-section">
-                <div className="dm-grow-heading">Today's Goals</div>
-                {goals.map(goal => (
-                  <div
-                    key={goal.id}
-                    className="dm-goal-item"
-                    onClick={() => setGoals(gs => gs.map(g => g.id === goal.id ? { ...g, done: !g.done } : g))}
-                  >
-                    <div className={`dm-goal-check${goal.done ? " done" : ""}`}>{goal.done ? "✓" : ""}</div>
-                    <div className={`dm-goal-text${goal.done ? " done" : ""}`}>{goal.text}</div>
-                  </div>
-                ))}
-                <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
-                  <input
-                    className="dm-input"
-                    placeholder="Add a goal..."
-                    value={newGoal}
-                    onChange={e => setNewGoal(e.target.value)}
-                    onKeyDown={e => {
-                      if (e.key === "Enter" && newGoal.trim()) {
-                        setGoals(gs => [...gs, { id: Date.now(), text: newGoal.trim(), done: false }]);
-                        setNewGoal("");
-                      }
-                    }}
-                  />
-                  <button className="dm-send-btn" onClick={() => {
-                    if (newGoal.trim()) {
-                      setGoals(gs => [...gs, { id: Date.now(), text: newGoal.trim(), done: false }]);
-                      setNewGoal("");
-                    }
-                  }}>ADD</button>
-                </div>
-              </div>
-
-              <div className="dm-grow-section">
-                <div className="dm-grow-heading">Progress</div>
-                <div style={{ background: "var(--bg-card2)", border: "1px solid #1A1A28", padding: "1rem", borderRadius: "2px" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.6rem" }}>
-                    <span style={{ fontSize: "0.78rem", color: "var(--text-dim)" }}>Goals complete</span>
-                    <span style={{ fontSize: "0.78rem", color: "var(--gold)" }}>{goals.filter(g => g.done).length} / {goals.length}</span>
-                  </div>
-                  <div style={{ height: "6px", background: "#1A1A28", borderRadius: "3px", overflow: "hidden" }}>
-                    <div style={{
-                      height: "100%",
-                      width: `${goals.length ? (goals.filter(g => g.done).length / goals.length) * 100 : 0}%`,
-                      background: "var(--gold)",
-                      transition: "width 0.4s ease",
-                    }} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="dm-grow-section">
-                <div className="dm-grow-heading">Companion Access</div>
-                <div style={{ background: "var(--bg-card2)", border: "1px solid #1A1A28", padding: "1rem", borderRadius: "2px" }}>
-                  {Object.entries(COMPANIONS).map(([name, data]) => {
-                    const locked = data.proOnly && tier === "free";
-                    return (
-                      <div key={name} style={{ display: "flex", alignItems: "center", gap: "0.7rem", marginBottom: "0.6rem" }}>
-                        <span style={{ fontSize: "1rem" }}>{data.emoji}</span>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontSize: "0.78rem", color: locked ? "var(--text-dim)" : data.color }}>{name}</div>
-                          <div style={{ fontSize: "0.65rem", color: "var(--text-dim)", letterSpacing: "0.05em" }}>{data.title}</div>
-                        </div>
-                        <div style={{ fontSize: "0.65rem", letterSpacing: "0.1em", color: locked ? "#FF6060" : "#4CAF50" }}>
-                          {locked ? "PRO" : "ACTIVE"}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          )}
-
+      {/* ── ADMIN INDICATOR (visible when logged in, outside splash) ── */}
+      {isAdmin && screen !== "splash" && (
+        <div className="dm-admin-indicator" onClick={() => setShowAdminDash(true)}>
+          ⬡ Admin · {TIERS[simTier].label}
         </div>
       )}
+
+      <div className="app">
+
+        {screen === "splash" && (
+          <div className="splash">
+            <div className="aura" />
+            {/* 5-tap Easter egg on the orb */}
+            <div className="orb-wrap" ref={orbRef} onClick={handleOrbTap}>
+              <div className="orb-ring" /><div className="orb-ring" /><div className="orb-ring" />
+              <div className="orb-core"><span className="orb-glyph">◈</span></div>
+            </div>
+            <div className="app-name">Day Masters</div>
+            <div className="app-tag">The Ultimate Human Compass</div>
+            <p className="splash-copy">Every decision. Every conversation. Every step forward. Your companions are here.</p>
+            <button className="btn-gold" onClick={() => setScreen("assess")}>Begin</button>
+            <button className="btn-ghost" onClick={() => { setNudgeEnabled(true); setScreen("companions"); }}>Returning User</button>
+          </div>
+        )}
+
+        {screen === "assess" && (
+          <div className="screen">
+            <div className="eyebrow">Self Assessment</div>
+            <div className="heading">Know Yourself First</div>
+            <div className="sub">Your companions are built from who you are. Answer honestly.</div>
+            <div className="prog-track"><div className="prog-fill" style={{ width: `${(assessIdx / ASSESS_QUESTIONS.length) * 100}%` }} /></div>
+            <div className="q-num">Question {assessIdx + 1} of {ASSESS_QUESTIONS.length}</div>
+            <div className="q-text">{ASSESS_QUESTIONS[assessIdx].q}</div>
+            <div className="opts">
+              {ASSESS_QUESTIONS[assessIdx].opts.map((o, i) => (
+                <button key={i} className={`opt ${answers[assessIdx] === o ? "sel" : ""}`} onClick={() => pickOpt(o)}>{o}</button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {screen === "companions" && (
+          <div className="screen">
+            <div className="eyebrow">Your Inner Council</div>
+            <div className="heading">Meet Your Companions</div>
+            <div className="sub">Six companions. Each a mirror of a different part of you.</div>
+            <div className="clist">
+              {COMPANIONS.map(c => (
+                <div key={c.id} className={`ccard ${c.master ? "master" : ""} ${companion?.id === c.id ? "sel" : ""}`}
+                  style={{ "--cc": c.color, "--cbg": c.bg, "--cb": c.border }} onClick={() => setCompanion(c)}>
+                  <div className="csym" style={{ color: c.color, filter: `drop-shadow(0 0 10px ${c.color})` }}>{c.symbol}</div>
+                  <div className="cbody">
+                    <div className="cname">{c.name}</div>
+                    <div className="ctitle" style={{ color: c.color }}>{c.title} &middot; {c.role}</div>
+                    <div className="cdesc">{c.desc}</div>
+                  </div>
+                  {c.master && <div className="mpill">Master</div>}
+                </div>
+              ))}
+            </div>
+            <button className="btn-full" disabled={!companion} onClick={() => setScreen("nudge-setup")}>Continue with {companion?.name || "..."}</button>
+          </div>
+        )}
+
+        {screen === "nudge-setup" && (
+          <div className="nudge-setup">
+            <div className="eyebrow">Daily Nudges</div>
+            <div className="heading">{companion?.name} Can Reach Out</div>
+            <div className="sub">Your companion can nudge you toward better habits unprompted — like a real friend who checks in.</div>
+            <div style={{ fontSize: 13, color: "var(--dim)", marginBottom: 20, fontWeight: 300 }}>Would you like {companion?.name} to reach out daily?</div>
+            <div style={{ display: "flex", gap: 12, marginBottom: 28 }}>
+              <button className={`opt ${nudgeEnabled ? "sel" : ""}`} style={{ flex: 1, textAlign: "center" }} onClick={() => setNudgeEnabled(true)}>Yes, reach out</button>
+              <button className={`opt ${!nudgeEnabled ? "sel" : ""}`} style={{ flex: 1, textAlign: "center" }} onClick={() => setNudgeEnabled(false)}>Not right now</button>
+            </div>
+            {nudgeEnabled && (
+              <>
+                <div className="time-label">What time should {companion?.name} reach out?</div>
+                <div className="time-opts">
+                  {["5:00 AM", "6:00 AM", "7:00 AM", "8:00 AM", "9:00 AM", "12:00 PM"].map(t => (
+                    <button key={t} className={`time-opt ${nudgeTime === t ? "sel" : ""}`} onClick={() => setNudgeTime(t)}>{t}</button>
+                  ))}
+                </div>
+              </>
+            )}
+            <button className="btn-full" style={{ marginTop: 8 }} onClick={() => setScreen("dash")}>Enter Day Masters</button>
+          </div>
+        )}
+
+        {screen === "dash" && (
+          <div style={{ paddingBottom: 100 }}>
+            <div className="dash-top">
+              <div className="dgreet">Good Day</div>
+              <div className="dtitle">How can I serve you today?</div>
+              {companion && (
+                <div className="aguide" onClick={() => setNav("council")}>
+                  <div className="agsym" style={{ color: companion.color }}>{companion.symbol}</div>
+                  <div className="aginfo">
+                    <div className="aglabel">Your Companion</div>
+                    <div className="agname">{companion.name}</div>
+                    <div className="agsubtitle">{companion.title}</div>
+                  </div>
+                  <div style={{ color: "var(--dim)" }}>›</div>
+                </div>
+              )}
+            </div>
+
+            {nav === "home" && (
+              <>
+                {showNudge && (
+                  <NudgeCard companion={companion}
+                    onRespond={() => { setChatMode("talk"); setTalkCompanion(companion); startTalk(companion); setNudgeDismissed(true); }}
+                    onDismiss={() => setNudgeDismissed(true)} />
+                )}
+                <div className="frameworks">
+                  <div className="fw-card decide" onClick={() => { setFrame({}); setFrameStep(0); setFrameConfirmed(false); setChatMode("decide"); setScreen("frame"); }}>
+                    <div className="fw-top">
+                      <span className="fw-icon">▶</span>
+                      <span className="fw-label" style={{ color: "#C9A84C" }}>Decide</span>
+                    </div>
+                    <div className="fw-sub">You have a choice to make. Your companion maps your parallel paths, shows you the outcomes, and holds you to the one you choose.</div>
+                    <div className="fw-action">Build my decision frame →</div>
+                  </div>
+                  <div className="fw-card talk" onClick={() => setScreen("talk-select")}>
+                    <div className="fw-top">
+                      <span className="fw-icon">♡</span>
+                      <span className="fw-label" style={{ color: "#E07A8A" }}>Talk</span>
+                    </div>
+                    <div className="fw-sub">No decision needed. Just open up. Philosophy, life, relationships, pain, purpose — whatever is sitting on you right now.</div>
+                    <div className="fw-action">Open a conversation →</div>
+                  </div>
+                  <div className="fw-card grow" onClick={() => setScreen("grow-dash")}>
+                    <div className="fw-top">
+                      <span className="fw-icon">△</span>
+                      <span className="fw-label" style={{ color: "#5B9BD5" }}>Grow</span>
+                    </div>
+                    <div className="fw-sub">Your companion checks in on your habits, commitments, and progress. {doneHabits} of {habits.length} habits done today.</div>
+                    <div className="fw-action">Check my progress →</div>
+                  </div>
+                </div>
+                <div className="slabel">Recent Sessions</div>
+                <div className="hlist">
+                  {HISTORY.map(h => (
+                    <div key={h.id} className="hcard">
+                      <div className="hcard-icon" style={{ color: h.framework === "decide" ? "#C9A84C" : h.framework === "talk" ? "#E07A8A" : "#5B9BD5" }}>
+                        {h.framework === "decide" ? "▶" : h.framework === "talk" ? "♡" : "△"}
+                      </div>
+                      <div className="hcard-body">
+                        <div className="htop"><span className="htype">{h.type}</span><span className="hdate">{h.date}</span></div>
+                        <div className="hq">{h.q}</div>
+                        <div className="hstat"><div className={`dot ${h.status}`} /><span className="hstxt">{h.status}</span></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {nav === "council" && (
+              <div style={{ padding: "0 24px 20px" }}>
+                <div className="slabel" style={{ padding: "28px 0 14px" }}>Your Council</div>
+                <div className="clist">
+                  {COMPANIONS.map(c => (
+                    <div key={c.id} className={`ccard ${c.master ? "master" : ""} ${companion?.id === c.id ? "sel" : ""}`}
+                      style={{ "--cc": c.color, "--cbg": c.bg, "--cb": c.border }}
+                      onClick={() => { setCompanion(c); setNav("home"); }}>
+                      <div className="csym" style={{ color: c.color }}>{c.symbol}</div>
+                      <div className="cbody">
+                        <div className="cname">{c.name}</div>
+                        <div className="ctitle" style={{ color: c.color }}>{c.title} &middot; {c.role}</div>
+                        <div className="cdesc">{c.desc}</div>
+                      </div>
+                      {c.master && <div className="mpill">Master</div>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="bnav">
+              {[{ id: "home", icon: "⊙", label: "Home" }, { id: "council", icon: "◈", label: "Council" }, { id: "history", icon: "≡", label: "History" }, { id: "profile", icon: "◎", label: "Profile" }].map(n => (
+                <div key={n.id} className={`bni ${nav === n.id ? "on" : ""}`} onClick={() => setNav(n.id)}>
+                  <div className="bni-icon">{n.icon}</div>
+                  <div className="bni-label">{n.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {screen === "talk-select" && (
+          <div className="talk-screen">
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
+              <span style={{ fontSize: 22, cursor: "pointer", color: "var(--dim)" }} onClick={() => setScreen("dash")}>←</span>
+              <div>
+                <div className="eyebrow" style={{ marginBottom: 2 }}>Talk</div>
+                <div className="heading" style={{ marginBottom: 0 }}>Who do you want to talk to?</div>
+              </div>
+            </div>
+            <div className="sub">Pick the companion whose voice you need most right now.</div>
+            {COMPANIONS.map(c => (
+              <div key={c.id} className="cpick" onClick={() => { setTalkCompanion(c); startTalk(c); }}>
+                <div className="cpick-sym" style={{ color: c.color }}>{c.symbol}</div>
+                <div>
+                  <div className="cpick-name">{c.name}</div>
+                  <div className="cpick-role" style={{ color: c.color }}>{c.role}</div>
+                </div>
+              </div>
+            ))}
+            <button className="btn-full" style={{ marginTop: 4 }} onClick={() => { setTalkCompanion(companion); startTalk(companion); }}>
+              Talk to {companion?.name || "my companion"}
+            </button>
+          </div>
+        )}
+
+        {screen === "grow-dash" && (
+          <div className="grow-screen">
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
+              <span style={{ fontSize: 22, cursor: "pointer", color: "var(--dim)" }} onClick={() => setScreen("dash")}>←</span>
+              <div>
+                <div className="eyebrow" style={{ marginBottom: 2 }}>Grow</div>
+                <div className="heading" style={{ marginBottom: 0 }}>Your Progress Today</div>
+              </div>
+            </div>
+            <div className="grow-stats">
+              <div className="stat-card"><div className="stat-num">{doneHabits}</div><div className="stat-label">Habits Done</div></div>
+              <div className="stat-card"><div className="stat-num">{habits.length - doneHabits}</div><div className="stat-label">Remaining</div></div>
+              <div className="stat-card"><div className="stat-num">3</div><div className="stat-label">Day Streak</div></div>
+              <div className="stat-card"><div className="stat-num">7</div><div className="stat-label">Decisions Made</div></div>
+            </div>
+            <div className="slabel" style={{ padding: "0 0 14px" }}>Today's Habits</div>
+            {habits.map(h => (
+              <div key={h.id} className={`habit-item ${h.done ? "done" : ""}`} onClick={() => setHabits(prev => prev.map(x => x.id === h.id ? { ...x, done: !x.done } : x))}>
+                <div className="habit-check">{h.done ? "✓" : ""}</div>
+                <div className="habit-text">{h.text}</div>
+              </div>
+            ))}
+            <button className="btn-full" style={{ marginTop: 4 }} onClick={startGrow}>Check In with {companion?.name}</button>
+          </div>
+        )}
+
+        {screen === "frame" && (
+          <div className="frame-screen">
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
+              <span style={{ fontSize: 22, cursor: "pointer", color: "var(--dim)" }} onClick={() => setScreen("dash")}>←</span>
+              <div>
+                <div className="eyebrow" style={{ marginBottom: 2 }}>Decide</div>
+                <div className="heading" style={{ marginBottom: 0 }}>Build Your Frame</div>
+              </div>
+            </div>
+            <div className="sub">{companion?.name} needs the full picture to map your paths accurately.</div>
+            {!frameConfirmed ? (
+              FRAME_QUESTIONS.slice(0, frameStep + 1).map((fq, i) => (
+                <FrameStep key={fq.key} fq={fq} value={frame[fq.key] || ""} active={i === frameStep} locked={i < frameStep} onSubmit={saveFrameStep} />
+              ))
+            ) : (
+              <>
+                <div className="fbox">
+                  <div className="fboxtitle">Your Decision Frame</div>
+                  {FRAME_QUESTIONS.map(fq => (
+                    <div key={fq.key} className="frow">
+                      <div className="frlabel">{fq.prompt.replace("?", "")}</div>
+                      <div className="frval">{frame[fq.key]}</div>
+                    </div>
+                  ))}
+                </div>
+                <p style={{ fontSize: 13, color: "var(--dim)", marginBottom: 24, lineHeight: 1.7, fontWeight: 300 }}>
+                  {companion?.name} has your full picture and will now reveal your 3 core paths.
+                </p>
+                <button className="btn-full" style={{ marginTop: 0 }} onClick={launchDecideChat}>Reveal My Paths with {companion?.name}</button>
+                <button className="btn-ghost" style={{ width: "100%", marginTop: 10 }} onClick={() => { setFrameConfirmed(false); setFrameStep(0); }}>Start Over</button>
+              </>
+            )}
+          </div>
+        )}
+
+        {screen === "chat" && activeComp && (
+          <div className="chat-screen">
+            <div className="chat-head">
+              <div className="chat-back" onClick={() => setScreen("dash")}>←</div>
+              <div className="chat-csym" style={{ color: activeComp.color }}>{activeComp.symbol}</div>
+              <div style={{ flex: 1 }}>
+                <div className="chat-cname">{activeComp.name}</div>
+                <div className="chat-ctitle">{activeComp.title} &middot; {activeComp.role}</div>
+              </div>
+              <div className={`chat-mode-badge ${chatMode}`}>
+                {chatMode === "decide" ? "Decide" : chatMode === "talk" ? "Talk" : "Grow"}
+              </div>
+            </div>
+            <div className="chat-msgs" ref={msgsRef}>
+              {messages.map((m, i) => (
+                <div key={i} className={`msg ${m.role}`}>
+                  <div className="msg-who" style={{ color: m.role === "ai" ? activeComp.color : "var(--gold)" }}>
+                    {m.role === "ai" ? activeComp.name : "You"}
+                  </div>
+                  <div className="msg-text">
+                    {m.text}
+                    {streaming && i === messages.length - 1 && m.role === "ai" && <span className="cursor" />}
+                  </div>
+                  {showRetry && i === messages.length - 1 && (
+                    <button className="retry-btn" onClick={retryLast}>Tap to retry</button>
+                  )}
+                </div>
+              ))}
+              {thinking && <ThinkingPortal name={activeComp.name} mode={chatMode} />}
+            </div>
+            <div className="chat-bar">
+              <textarea className="cinput"
+                placeholder={chatMode === "talk" ? "Say anything — I am here..." : chatMode === "grow" ? "Tell me how it is going..." : `${activeComp.name} is here...`}
+                value={chatInput}
+                onChange={e => setChatInput(e.target.value)}
+                onKeyDown={e => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMsg(); } }}
+                rows={1} />
+              <button className="csend" onClick={sendMsg} disabled={thinking || streaming}>↑</button>
+            </div>
+          </div>
+        )}
+
+      </div>
     </>
   );
 }
+
