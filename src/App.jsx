@@ -3,36 +3,42 @@ import { useState, useRef, useEffect } from "react";
 const COMPANIONS = [
   {
     id: "collective", name: "Solar", title: "The Collective", role: "The Singularity",
+    img: "/solar.png",
     desc: "All voices unified into one. The master. Consult Solar when the decision defines your life.",
     color: "#C9A84C", bg: "rgba(201,168,76,0.08)", border: "rgba(201,168,76,0.35)", symbol: "◈", master: true,
     nudges: ["Solar is with you. Every path you walk today was chosen by you. Choose consciously.", "The universe responds to you. What decision will you lead with today?", "You are the sum of every choice you have made. Today adds another. Make it count.", "Solar sees all your paths. Which one calls to you before the noise begins?", "Every day is a new quantum moment. What version of yourself will you choose to be?"],
   },
   {
     id: "compassionate", name: "Sofia", title: "The Compassionate", role: "Heart & Empathy",
+    img: "/sophia.png",
     desc: "Sofia speaks from pure love. She feels your weight before she speaks a word.",
     color: "#E07A8A", bg: "rgba(224,122,138,0.08)", border: "rgba(224,122,138,0.35)", symbol: "♡",
     nudges: ["Good morning. Sofia is checking in. How are you really feeling today?", "Loving yourself is the first decision of every day. Have you made it yet?", "The people in your life feel the energy you carry. What are you bringing today?", "What is one kind thing you can do for yourself before this day gets loud?", "Your heart has been carrying a lot. Take a breath. You are doing better than you think."],
   },
   {
     id: "logical", name: "Stewart", title: "The Logical", role: "Mind & Strategy",
+    img: "/stewart.png",
     desc: "Stewart is the sharpest mind in the room. No emotion — just pure strategic clarity.",
     color: "#5B9BD5", bg: "rgba(91,155,213,0.08)", border: "rgba(91,155,213,0.35)", symbol: "⟁",
     nudges: ["Stewart here. What is the one high-leverage action you can take today?", "Discipline is a decision repeated. What decision will you repeat today?", "Have you reviewed your goals this week? Clarity requires maintenance.", "Small consistent actions compound into extraordinary results. What is today's action?", "Are your habits today aligned with where you said you wanted to go?"],
   },
   {
     id: "realist", name: "Drax", title: "The Realist", role: "Ground & Truth",
+    img: "/drax.png",
     desc: "Drax keeps it all the way real. Street wisdom meets radical honesty.",
     color: "#A8A8A8", bg: "rgba(168,168,168,0.08)", border: "rgba(168,168,168,0.35)", symbol: "◎",
     nudges: ["Drax checking in. Are you moving toward your goals or making excuses? Be real.", "Comfort is the enemy of the life you said you wanted. What habit is holding you back?", "The truth you keep avoiding is still gonna be there tomorrow. Face one thing today.", "Did you do what you said you were gonna do? Accountability starts with you.", "What is the real reason you have not started yet? Name it. Then move past it."],
   },
   {
     id: "fearless", name: "Aries", title: "The Fearless", role: "Courage & Risk",
+    img: "/aries.png",
     desc: "Aries is pure fire. The voice that pushes you past every wall fear ever built.",
     color: "#E8754A", bg: "rgba(232,117,74,0.08)", border: "rgba(232,117,74,0.35)", symbol: "↯",
     nudges: ["Aries here. What is the one bold move you have been putting off? Today is the day.", "Fear is just excitement without permission. Give yourself permission today.", "The version of you that you dream about — what would they do this morning?", "Courage is not the absence of fear. It is moving despite it. Move today.", "You are one decision away from a completely different life. What is that decision?"],
   },
   {
     id: "intuitive", name: "Mary", title: "The Intuitive", role: "Spirit & Instinct",
+    img: "/mary.png",
     desc: "Mary speaks from the deepest place — the quiet voice inside you that already knows.",
     color: "#9B72CF", bg: "rgba(155,114,207,0.08)", border: "rgba(155,114,207,0.35)", symbol: "◉",
     nudges: ["Mary is with you. Before the day begins — what does your gut already know?", "Your intuition has never truly failed you. What is it whispering right now?", "Take three deep breaths. What do you already know that you have been afraid to trust?", "You came here for a reason. Your spirit knows the path. Trust it today.", "What does your soul need to hear most this morning? Say it to yourself."],
@@ -90,7 +96,6 @@ const HABIT_DEFAULTS = [
   { id: 5, text: "End the day with gratitude", done: false },
 ];
 
-// ─── ADMIN KEY ────────────────────────────────────────────────────────────────
 const ADMIN_KEY = "DMTHRONE25";
 
 const TIERS = {
@@ -272,6 +277,14 @@ html,body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;o
 .time-opt.sel{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.08)}
 .time-label{font-size:11px;letter-spacing:3px;color:var(--dim);text-transform:uppercase;margin-bottom:12px}
 
+/* ── COMPANION PORTRAIT — added only ── */
+.chat-portrait{width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid var(--cc, rgba(201,168,76,0.4));flex-shrink:0;box-shadow:0 0 12px var(--cc, rgba(201,168,76,0.2))}
+.chat-portrait-fallback{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;border:2px solid rgba(201,168,76,0.3)}
+.msg-portrait{width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;margin-top:2px;opacity:0.85}
+.msg-portrait-fallback{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;margin-top:2px}
+.msg.ai{display:flex;flex-direction:row;gap:8px;align-items:flex-start;max-width:96%;padding:0;background:transparent;border:none;border-radius:0}
+.msg-bubble{background:var(--s1);border:1px solid var(--border);border-radius:2px 12px 12px 12px;padding:14px 16px;flex:1}
+
 /* ── ADMIN OVERLAY ── */
 .dm-admin-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;align-items:center;justify-content:center;z-index:99999}
 .dm-admin-box{background:#0C0F18;border:1px solid rgba(201,168,76,.35);border-radius:4px;padding:2rem;width:90%;max-width:380px;box-shadow:0 0 40px rgba(201,168,76,.12)}
@@ -359,8 +372,30 @@ function NudgeCard({ companion, onRespond, onDismiss }) {
   );
 }
 
+// ── Portrait helper — shows image or falls back to symbol
+function CompanionPortrait({ companion, size = "chat", style = {} }) {
+  const [err, setErr] = useState(false);
+  const cls = size === "msg" ? "msg-portrait" : "chat-portrait";
+  const fbCls = size === "msg" ? "msg-portrait-fallback" : "chat-portrait-fallback";
+  if (!companion.img || err) {
+    return (
+      <div className={fbCls} style={{ background: companion.bg, ...style }}>
+        <span style={{ color: companion.color }}>{companion.symbol}</span>
+      </div>
+    );
+  }
+  return (
+    <img
+      src={companion.img}
+      alt={companion.name}
+      className={cls}
+      style={{ "--cc": companion.color, ...style }}
+      onError={() => setErr(true)}
+    />
+  );
+}
+
 export default function DayMasters() {
-  // ── Original state (untouched) ──
   const [screen, setScreen] = useState("splash");
   const [assessIdx, setAssessIdx] = useState(0);
   const [answers, setAnswers] = useState({});
@@ -382,7 +417,6 @@ export default function DayMasters() {
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
   const msgsRef = useRef(null);
 
-  // ── Admin state (new — only addition) ──
   const [showAdminPrompt, setShowAdminPrompt] = useState(false);
   const [showAdminDash, setShowAdminDash] = useState(false);
   const [adminInput, setAdminInput] = useState("");
@@ -397,7 +431,6 @@ export default function DayMasters() {
     if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight;
   }, [messages, thinking]);
 
-  // ── Original functions (untouched) ──
   function pickOpt(opt) {
     const updated = { ...answers, [assessIdx]: opt };
     setAnswers(updated);
@@ -536,7 +569,6 @@ export default function DayMasters() {
     await runAI(voice, history, chatMode);
   }
 
-  // ── Admin handlers (new) ──
   function handleOrbTap() {
     if (orbRef.current) {
       orbRef.current.style.transform = "scale(0.88)";
@@ -573,7 +605,6 @@ export default function DayMasters() {
     <>
       <style>{css}</style>
 
-      {/* ── ADMIN KEY PROMPT ── */}
       {showAdminPrompt && (
         <div className="dm-admin-overlay">
           <div className="dm-admin-box">
@@ -596,7 +627,6 @@ export default function DayMasters() {
         </div>
       )}
 
-      {/* ── ADMIN DASHBOARD ── */}
       {showAdminDash && (
         <div className="dm-admin-overlay">
           <div className="dm-admin-dash">
@@ -628,7 +658,6 @@ export default function DayMasters() {
         </div>
       )}
 
-      {/* ── ADMIN INDICATOR (visible when logged in, outside splash) ── */}
       {isAdmin && screen !== "splash" && (
         <div className="dm-admin-indicator" onClick={() => setShowAdminDash(true)}>
           ⬡ Admin · {TIERS[simTier].label}
@@ -640,7 +669,6 @@ export default function DayMasters() {
         {screen === "splash" && (
           <div className="splash">
             <div className="aura" />
-            {/* 5-tap Easter egg on the orb */}
             <div className="orb-wrap" ref={orbRef} onClick={handleOrbTap}>
               <div className="orb-ring" /><div className="orb-ring" /><div className="orb-ring" />
               <div className="orb-core"><span className="orb-glyph">◈</span></div>
@@ -907,7 +935,8 @@ export default function DayMasters() {
           <div className="chat-screen">
             <div className="chat-head">
               <div className="chat-back" onClick={() => setScreen("dash")}>←</div>
-              <div className="chat-csym" style={{ color: activeComp.color }}>{activeComp.symbol}</div>
+              {/* PORTRAIT in chat header */}
+              <CompanionPortrait companion={activeComp} size="chat" />
               <div style={{ flex: 1 }}>
                 <div className="chat-cname">{activeComp.name}</div>
                 <div className="chat-ctitle">{activeComp.title} &middot; {activeComp.role}</div>
@@ -918,16 +947,28 @@ export default function DayMasters() {
             </div>
             <div className="chat-msgs" ref={msgsRef}>
               {messages.map((m, i) => (
-                <div key={i} className={`msg ${m.role}`}>
-                  <div className="msg-who" style={{ color: m.role === "ai" ? activeComp.color : "var(--gold)" }}>
-                    {m.role === "ai" ? activeComp.name : "You"}
-                  </div>
-                  <div className="msg-text">
-                    {m.text}
-                    {streaming && i === messages.length - 1 && m.role === "ai" && <span className="cursor" />}
-                  </div>
-                  {showRetry && i === messages.length - 1 && (
-                    <button className="retry-btn" onClick={retryLast}>Tap to retry</button>
+                <div key={i}>
+                  {m.role === "ai" ? (
+                    /* AI message — portrait + bubble side by side */
+                    <div className="msg ai">
+                      <CompanionPortrait companion={activeComp} size="msg" />
+                      <div className="msg-bubble">
+                        <div className="msg-who" style={{ color: activeComp.color }}>{activeComp.name}</div>
+                        <div className="msg-text">
+                          {m.text}
+                          {streaming && i === messages.length - 1 && <span className="cursor" />}
+                        </div>
+                        {showRetry && i === messages.length - 1 && (
+                          <button className="retry-btn" onClick={retryLast}>Tap to retry</button>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    /* User message — unchanged */
+                    <div className="msg user">
+                      <div className="msg-who" style={{ color: "var(--gold)" }}>You</div>
+                      <div className="msg-text">{m.text}</div>
+                    </div>
                   )}
                 </div>
               ))}
