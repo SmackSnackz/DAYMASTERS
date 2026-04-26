@@ -231,23 +231,36 @@ html,body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;o
 .habit-text{flex:1;font-size:14px;font-weight:300}
 .habit-item.done .habit-text{color:var(--dim);text-decoration:line-through}
 .chat-screen{display:flex;flex-direction:column;height:100vh;animation:fadeUp .35s ease}
-.chat-head{padding:44px 20px 16px;background:var(--s1);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;flex-shrink:0;position:relative}
+.chat-head{padding:16px 20px;background:var(--s1);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;flex-shrink:0;position:relative;padding-top:44px}
 .chat-mode-badge{position:absolute;top:48px;right:20px;font-size:8px;letter-spacing:2px;text-transform:uppercase;padding:3px 8px;border-radius:10px;font-weight:500}
 .chat-mode-badge.decide{background:rgba(201,168,76,.15);color:var(--gold);border:1px solid rgba(201,168,76,.3)}
 .chat-mode-badge.talk{background:rgba(224,122,138,.15);color:#E07A8A;border:1px solid rgba(224,122,138,.3)}
 .chat-mode-badge.grow{background:rgba(91,155,213,.15);color:#5B9BD5;border:1px solid rgba(91,155,213,.3)}
-.chat-back{font-size:22px;cursor:pointer;color:var(--dim);transition:color .2s;line-height:1}
+.chat-back{font-size:22px;cursor:pointer;color:var(--dim);transition:color .2s;line-height:1;flex-shrink:0}
 .chat-back:hover{color:var(--gold)}
-.chat-csym{font-size:26px;flex-shrink:0}
 .chat-cname{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600}
 .chat-ctitle{font-size:9px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
-.chat-msgs{flex:1;overflow-y:auto;padding:20px 20px 8px;display:flex;flex-direction:column;gap:14px;scroll-behavior:smooth}
+.chat-msgs{flex:1;overflow-y:auto;padding:16px 16px 8px;display:flex;flex-direction:column;gap:16px;scroll-behavior:smooth}
 .chat-msgs::-webkit-scrollbar{width:0}
+
+/* ── AI MESSAGE WITH LARGE PORTRAIT ── */
+.msg-ai-wrap{display:flex;flex-direction:column;align-items:flex-start;gap:8px;max-width:96%}
+.msg-ai-header{display:flex;align-items:center;gap:10px}
+.msg-portrait-lg{width:180px;height:180px;border-radius:16px;object-fit:cover;object-position:top;border:2px solid var(--portrait-border, rgba(201,168,76,0.35));box-shadow:0 0 24px var(--portrait-glow, rgba(201,168,76,0.15));flex-shrink:0}
+.msg-portrait-lg-fallback{width:180px;height:180px;border-radius:16px;display:flex;align-items:center;justify-content:center;font-size:72px;border:2px solid rgba(201,168,76,0.2);flex-shrink:0}
+.msg-who{font-size:9px;letter-spacing:2px;text-transform:uppercase;font-weight:600}
+.msg-bubble{background:var(--s1);border:1px solid var(--border);border-radius:2px 12px 12px 12px;padding:14px 16px;width:100%}
+.msg-text{white-space:pre-wrap;word-break:break-word;font-size:13.5px;line-height:1.8;font-weight:300}
+
+/* ── USER MESSAGE ── */
 .msg{max-width:92%;padding:14px 16px;font-size:14px;line-height:1.8;font-weight:300}
-.msg.ai{align-self:flex-start;background:var(--s1);border:1px solid var(--border);border-radius:2px 12px 12px 12px}
 .msg.user{align-self:flex-end;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.2);border-radius:12px 2px 12px 12px}
-.msg-who{font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;font-weight:600}
-.msg-text{white-space:pre-wrap;word-break:break-word;font-size:13.5px;line-height:1.8}
+.msg-who-user{font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;font-weight:600;color:var(--gold)}
+
+/* ── CHAT HEADER PORTRAIT ── */
+.chat-portrait-lg{width:56px;height:56px;border-radius:50%;object-fit:cover;object-position:top;border:2px solid var(--portrait-border, rgba(201,168,76,0.4));box-shadow:0 0 14px var(--portrait-glow, rgba(201,168,76,0.2));flex-shrink:0}
+.chat-portrait-lg-fallback{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
+
 .cursor{display:inline-block;width:2px;height:13px;background:var(--gold);margin-left:2px;vertical-align:middle;animation:blink-cursor .7s ease-in-out infinite}
 @keyframes blink-cursor{0%,100%{opacity:1}50%{opacity:0}}
 .thinking-portal{align-self:flex-start;background:var(--s1);border:1px solid rgba(201,168,76,.25);border-radius:2px 12px 12px 12px;padding:16px 18px;max-width:88%}
@@ -277,15 +290,7 @@ html,body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;o
 .time-opt.sel{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.08)}
 .time-label{font-size:11px;letter-spacing:3px;color:var(--dim);text-transform:uppercase;margin-bottom:12px}
 
-/* ── COMPANION PORTRAIT — added only ── */
-.chat-portrait{width:44px;height:44px;border-radius:50%;object-fit:cover;border:2px solid var(--cc, rgba(201,168,76,0.4));flex-shrink:0;box-shadow:0 0 12px var(--cc, rgba(201,168,76,0.2))}
-.chat-portrait-fallback{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;border:2px solid rgba(201,168,76,0.3)}
-.msg-portrait{width:28px;height:28px;border-radius:50%;object-fit:cover;flex-shrink:0;margin-top:2px;opacity:0.85}
-.msg-portrait-fallback{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;margin-top:2px}
-.msg.ai{display:flex;flex-direction:row;gap:8px;align-items:flex-start;max-width:96%;padding:0;background:transparent;border:none;border-radius:0}
-.msg-bubble{background:var(--s1);border:1px solid var(--border);border-radius:2px 12px 12px 12px;padding:14px 16px;flex:1}
-
-/* ── ADMIN OVERLAY ── */
+/* ── ADMIN ── */
 .dm-admin-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;align-items:center;justify-content:center;z-index:99999}
 .dm-admin-box{background:#0C0F18;border:1px solid rgba(201,168,76,.35);border-radius:4px;padding:2rem;width:90%;max-width:380px;box-shadow:0 0 40px rgba(201,168,76,.12)}
 .dm-admin-title{font-family:'Cormorant Garamond',serif;color:var(--gold);font-size:1rem;letter-spacing:0.2em;margin-bottom:1.2rem;text-align:center;text-transform:uppercase}
@@ -372,14 +377,12 @@ function NudgeCard({ companion, onRespond, onDismiss }) {
   );
 }
 
-// ── Portrait helper — shows image or falls back to symbol
-function CompanionPortrait({ companion, size = "chat", style = {} }) {
+// ── Portrait components
+function ChatHeaderPortrait({ companion }) {
   const [err, setErr] = useState(false);
-  const cls = size === "msg" ? "msg-portrait" : "chat-portrait";
-  const fbCls = size === "msg" ? "msg-portrait-fallback" : "chat-portrait-fallback";
   if (!companion.img || err) {
     return (
-      <div className={fbCls} style={{ background: companion.bg, ...style }}>
+      <div className="chat-portrait-lg-fallback" style={{ background: companion.bg }}>
         <span style={{ color: companion.color }}>{companion.symbol}</span>
       </div>
     );
@@ -388,8 +391,28 @@ function CompanionPortrait({ companion, size = "chat", style = {} }) {
     <img
       src={companion.img}
       alt={companion.name}
-      className={cls}
-      style={{ "--cc": companion.color, ...style }}
+      className="chat-portrait-lg"
+      style={{ "--portrait-border": companion.color + "66", "--portrait-glow": companion.color + "33" }}
+      onError={() => setErr(true)}
+    />
+  );
+}
+
+function MessagePortrait({ companion }) {
+  const [err, setErr] = useState(false);
+  if (!companion.img || err) {
+    return (
+      <div className="msg-portrait-lg-fallback" style={{ background: companion.bg }}>
+        <span style={{ color: companion.color }}>{companion.symbol}</span>
+      </div>
+    );
+  }
+  return (
+    <img
+      src={companion.img}
+      alt={companion.name}
+      className="msg-portrait-lg"
+      style={{ "--portrait-border": companion.color + "66", "--portrait-glow": companion.color + "22" }}
       onError={() => setErr(true)}
     />
   );
@@ -609,20 +632,12 @@ export default function DayMasters() {
         <div className="dm-admin-overlay">
           <div className="dm-admin-box">
             <div className="dm-admin-title">⬡ Administrative Access</div>
-            <input
-              className="dm-admin-input"
-              type="password"
-              placeholder="Enter admin key..."
-              value={adminInput}
-              onChange={e => setAdminInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleAdminSubmit()}
-              autoFocus
-            />
+            <input className="dm-admin-input" type="password" placeholder="Enter admin key..."
+              value={adminInput} onChange={e => setAdminInput(e.target.value)}
+              onKeyDown={e => e.key === "Enter" && handleAdminSubmit()} autoFocus />
             <button className="dm-admin-btn" onClick={handleAdminSubmit}>Authenticate</button>
             {adminErr && <div className="dm-admin-err">{adminErr}</div>}
-            <button className="dm-admin-close" onClick={() => { setShowAdminPrompt(false); setAdminErr(""); setAdminInput(""); }}>
-              Cancel
-            </button>
+            <button className="dm-admin-close" onClick={() => { setShowAdminPrompt(false); setAdminErr(""); setAdminInput(""); }}>Cancel</button>
           </div>
         </div>
       )}
@@ -635,9 +650,7 @@ export default function DayMasters() {
               <div style={{ fontSize: "0.7rem", color: "var(--dim)", letterSpacing: "0.1em", marginBottom: "0.5rem", textTransform: "uppercase" }}>Simulate Tier</div>
               <div className="dm-tier-btns">
                 {Object.entries(TIERS).map(([key, t]) => (
-                  <button key={key} className={`dm-tier-btn${simTier === key ? " active" : ""}`} onClick={() => setSimTier(key)}>
-                    {t.label}
-                  </button>
+                  <button key={key} className={`dm-tier-btn${simTier === key ? " active" : ""}`} onClick={() => setSimTier(key)}>{t.label}</button>
                 ))}
               </div>
             </div>
@@ -659,9 +672,7 @@ export default function DayMasters() {
       )}
 
       {isAdmin && screen !== "splash" && (
-        <div className="dm-admin-indicator" onClick={() => setShowAdminDash(true)}>
-          ⬡ Admin · {TIERS[simTier].label}
-        </div>
+        <div className="dm-admin-indicator" onClick={() => setShowAdminDash(true)}>⬡ Admin · {TIERS[simTier].label}</div>
       )}
 
       <div className="app">
@@ -771,26 +782,17 @@ export default function DayMasters() {
                 )}
                 <div className="frameworks">
                   <div className="fw-card decide" onClick={() => { setFrame({}); setFrameStep(0); setFrameConfirmed(false); setChatMode("decide"); setScreen("frame"); }}>
-                    <div className="fw-top">
-                      <span className="fw-icon">▶</span>
-                      <span className="fw-label" style={{ color: "#C9A84C" }}>Decide</span>
-                    </div>
+                    <div className="fw-top"><span className="fw-icon">▶</span><span className="fw-label" style={{ color: "#C9A84C" }}>Decide</span></div>
                     <div className="fw-sub">You have a choice to make. Your companion maps your parallel paths, shows you the outcomes, and holds you to the one you choose.</div>
                     <div className="fw-action">Build my decision frame →</div>
                   </div>
                   <div className="fw-card talk" onClick={() => setScreen("talk-select")}>
-                    <div className="fw-top">
-                      <span className="fw-icon">♡</span>
-                      <span className="fw-label" style={{ color: "#E07A8A" }}>Talk</span>
-                    </div>
+                    <div className="fw-top"><span className="fw-icon">♡</span><span className="fw-label" style={{ color: "#E07A8A" }}>Talk</span></div>
                     <div className="fw-sub">No decision needed. Just open up. Philosophy, life, relationships, pain, purpose — whatever is sitting on you right now.</div>
                     <div className="fw-action">Open a conversation →</div>
                   </div>
                   <div className="fw-card grow" onClick={() => setScreen("grow-dash")}>
-                    <div className="fw-top">
-                      <span className="fw-icon">△</span>
-                      <span className="fw-label" style={{ color: "#5B9BD5" }}>Grow</span>
-                    </div>
+                    <div className="fw-top"><span className="fw-icon">△</span><span className="fw-label" style={{ color: "#5B9BD5" }}>Grow</span></div>
                     <div className="fw-sub">Your companion checks in on your habits, commitments, and progress. {doneHabits} of {habits.length} habits done today.</div>
                     <div className="fw-action">Check my progress →</div>
                   </div>
@@ -935,8 +937,7 @@ export default function DayMasters() {
           <div className="chat-screen">
             <div className="chat-head">
               <div className="chat-back" onClick={() => setScreen("dash")}>←</div>
-              {/* PORTRAIT in chat header */}
-              <CompanionPortrait companion={activeComp} size="chat" />
+              <ChatHeaderPortrait companion={activeComp} />
               <div style={{ flex: 1 }}>
                 <div className="chat-cname">{activeComp.name}</div>
                 <div className="chat-ctitle">{activeComp.title} &middot; {activeComp.role}</div>
@@ -945,15 +946,17 @@ export default function DayMasters() {
                 {chatMode === "decide" ? "Decide" : chatMode === "talk" ? "Talk" : "Grow"}
               </div>
             </div>
+
             <div className="chat-msgs" ref={msgsRef}>
               {messages.map((m, i) => (
                 <div key={i}>
                   {m.role === "ai" ? (
-                    /* AI message — portrait + bubble side by side */
-                    <div className="msg ai">
-                      <CompanionPortrait companion={activeComp} size="msg" />
+                    <div className="msg-ai-wrap">
+                      <div className="msg-ai-header">
+                        <MessagePortrait companion={activeComp} />
+                        <div className="msg-who" style={{ color: activeComp.color }}>{activeComp.name} · {activeComp.role}</div>
+                      </div>
                       <div className="msg-bubble">
-                        <div className="msg-who" style={{ color: activeComp.color }}>{activeComp.name}</div>
                         <div className="msg-text">
                           {m.text}
                           {streaming && i === messages.length - 1 && <span className="cursor" />}
@@ -964,9 +967,8 @@ export default function DayMasters() {
                       </div>
                     </div>
                   ) : (
-                    /* User message — unchanged */
-                    <div className="msg user">
-                      <div className="msg-who" style={{ color: "var(--gold)" }}>You</div>
+                    <div className="msg user" style={{ alignSelf: "flex-end" }}>
+                      <div className="msg-who-user">You</div>
                       <div className="msg-text">{m.text}</div>
                     </div>
                   )}
@@ -974,6 +976,7 @@ export default function DayMasters() {
               ))}
               {thinking && <ThinkingPortal name={activeComp.name} mode={chatMode} />}
             </div>
+
             <div className="chat-bar">
               <textarea className="cinput"
                 placeholder={chatMode === "talk" ? "Say anything — I am here..." : chatMode === "grow" ? "Tell me how it is going..." : `${activeComp.name} is here...`}
@@ -990,4 +993,5 @@ export default function DayMasters() {
     </>
   );
 }
+
 
