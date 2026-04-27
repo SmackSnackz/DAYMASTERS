@@ -99,10 +99,78 @@ const HABIT_DEFAULTS = [
 const ADMIN_KEY = "DMTHRONE25";
 
 const TIERS = {
-  free:    { label: "FREE",    paths: 2, outcomes: 2, companions: ["Sofia", "Drax"] },
-  pro:     { label: "PRO",     paths: 4, outcomes: 4, companions: ["Sofia", "Drax", "Stewart", "Aries", "Mary"] },
-  premium: { label: "PREMIUM", paths: 8, outcomes: 6, companions: ["Sofia", "Drax", "Stewart", "Aries", "Mary", "Solar"] },
+  free:    { label: "FREE",    paths: 2, outcomes: 2 },
+  pro:     { label: "PRO",     paths: 4, outcomes: 4 },
+  premium: { label: "PREMIUM", paths: 8, outcomes: 6 },
 };
+
+const PATH_LABELS = ["Path Alpha","Path Beta","Path Gamma","Path Delta","Path Epsilon","Path Zeta","Path Theta","Path Omega"];
+const OUTCOME_LABELS = ["Best Case","Most Likely","The Challenge","Hidden Variable","The Cost","Wildcard"];
+
+// ── Quantum Paths AI call
+async function generateQuantumPaths(situation, companion, tier, apiKey) {
+  const { paths: pathCount, outcomes: outcomeCount } = TIERS[tier];
+  const isSolar = companion.id === "collective";
+
+  const personalities = {
+    collective: "You are Solar — the super agent. You synthesize emotional, logical, intuitive, strategic, and spiritual dimensions simultaneously. You see further than any single guide.",
+    compassionate: "You are Sofia — you counsel from the heart, acknowledging feelings and human impact in every path.",
+    logical: "You are Stewart — you analyze variables, probabilities, and second-order effects with precision.",
+    realist: "You are Drax — you tell the hard truth about each path without sugarcoating.",
+    fearless: "You are Aries — you identify the bold action and the fear blocking each path.",
+    intuitive: "You are Mary — you speak to what the soul already knows about each path.",
+  };
+
+  const system = `You are ${companion.name}, ${companion.title} — a quantum decision counselor in the Day Masters app. ${personalities[companion.id]} You are not just mapping paths. You are an active counselor who deeply cares about the user. Respond ONLY with valid JSON. No markdown. No explanation outside the JSON.`;
+
+  const prompt = `The user is facing this situation: "${situation}"
+
+Generate exactly ${pathCount} quantum decision paths. Each path must have exactly ${outcomeCount} outcomes.
+
+For each path include a "guidance" field — this is your personal counselor advice. Warn about risks, unknown variables, who might be affected, what inner work is required, and what makes this path strong or dangerous. Speak directly to the user as their trusted companion.${isSolar ? " As Solar, synthesize emotional, logical, intuitive, strategic, and spiritual dimensions in your guidance simultaneously." : ""}
+
+Return ONLY this exact JSON (no markdown, no backticks, no extra text):
+{
+  "paths": [
+    {
+      "label": "Path Alpha",
+      "text": "1-2 sentence description of this decision path",
+      "guidance": "2-3 sentences of personal counselor advice speaking directly to the user",
+      "outcomes": [
+        {
+          "label": "Best Case",
+          "text": "What unfolds if this outcome happens — 1-2 sentences"
+        }
+      ]
+    }
+  ]
+}
+
+Path labels to use in order: ${PATH_LABELS.slice(0, pathCount).join(", ")}.
+Outcome labels to use in order: ${OUTCOME_LABELS.slice(0, outcomeCount).join(", ")}.`;
+
+  const res = await fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": apiKey,
+      "anthropic-version": "2023-06-01",
+      "anthropic-dangerous-direct-browser-access": "true",
+    },
+    body: JSON.stringify({
+      model: "claude-sonnet-4-20250514",
+      max_tokens: isSolar ? 4000 : 2000,
+      system,
+      messages: [{ role: "user", content: prompt }],
+    }),
+  });
+
+  if (!res.ok) throw new Error("API error");
+  const data = await res.json();
+  const raw = data.content?.[0]?.text || "{}";
+  const clean = raw.replace(/```json|```/g, "").trim();
+  return JSON.parse(clean);
+}
 
 const css = `
 @import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500;600;700&family=Jost:wght@200;300;400;500;600&display=swap');
@@ -203,16 +271,6 @@ html,body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;o
 .dot.decided{background:#5B9BD5;box-shadow:0 0 6px rgba(91,155,213,.7)}
 .dot.complete{background:#5BAD8A;box-shadow:0 0 6px rgba(91,173,138,.7)}
 .hstxt{font-size:11px;color:var(--dim);text-transform:capitalize}
-.frame-screen{min-height:100vh;padding:56px 24px 40px;animation:fadeUp .35s ease}
-.fstep{margin-bottom:32px}
-.fq{font-size:17px;font-weight:400;margin-bottom:12px;line-height:1.4}
-.finput{width:100%;background:var(--s1);border:1px solid var(--border);border-radius:2px;padding:14px 16px;color:var(--text);font-family:'Jost',sans-serif;font-size:14px;font-weight:300;outline:none;transition:border-color .25s;resize:none;min-height:68px;line-height:1.6}
-.finput::placeholder{color:var(--dim)}.finput:focus{border-color:rgba(201,168,76,.4)}
-.fbox{background:var(--s1);border:1px solid rgba(201,168,76,.2);border-radius:3px;padding:20px;margin-bottom:24px}
-.fboxtitle{font-family:'Cormorant Garamond',serif;font-size:14px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:16px}
-.frow{margin-bottom:12px}
-.frlabel{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:3px}
-.frval{font-size:14px;line-height:1.5}
 .talk-screen{min-height:100vh;padding:56px 24px 40px;animation:fadeUp .35s ease}
 .cpick{background:var(--s1);border:1px solid var(--border);border-radius:3px;padding:14px 16px;cursor:pointer;transition:all .25s;display:flex;align-items:center;gap:12px;margin-bottom:10px}
 .cpick:hover{border-color:rgba(201,168,76,.3);transform:translateX(3px)}
@@ -230,8 +288,10 @@ html,body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;o
 .habit-item.done .habit-check{background:var(--gold);border-color:var(--gold);color:#07090E}
 .habit-text{flex:1;font-size:14px;font-weight:300}
 .habit-item.done .habit-text{color:var(--dim);text-decoration:line-through}
+
+/* ── CHAT ── */
 .chat-screen{display:flex;flex-direction:column;height:100vh;animation:fadeUp .35s ease}
-.chat-head{padding:16px 20px;background:var(--s1);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;flex-shrink:0;position:relative;padding-top:44px}
+.chat-head{padding:44px 20px 16px;background:var(--s1);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;flex-shrink:0;position:relative}
 .chat-mode-badge{position:absolute;top:48px;right:20px;font-size:8px;letter-spacing:2px;text-transform:uppercase;padding:3px 8px;border-radius:10px;font-weight:500}
 .chat-mode-badge.decide{background:rgba(201,168,76,.15);color:var(--gold);border:1px solid rgba(201,168,76,.3)}
 .chat-mode-badge.talk{background:rgba(224,122,138,.15);color:#E07A8A;border:1px solid rgba(224,122,138,.3)}
@@ -243,7 +303,7 @@ html,body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;o
 .chat-msgs{flex:1;overflow-y:auto;padding:16px 16px 8px;display:flex;flex-direction:column;gap:16px;scroll-behavior:smooth}
 .chat-msgs::-webkit-scrollbar{width:0}
 
-/* ── AI MESSAGE WITH LARGE PORTRAIT ── */
+/* ── COMPANION PORTRAITS ── */
 .msg-ai-wrap{display:flex;flex-direction:column;align-items:flex-start;gap:8px;max-width:96%}
 .msg-ai-header{display:flex;align-items:center;gap:10px}
 .msg-portrait-lg{width:180px;height:180px;border-radius:16px;object-fit:cover;object-position:top;border:2px solid var(--portrait-border, rgba(201,168,76,0.35));box-shadow:0 0 24px var(--portrait-glow, rgba(201,168,76,0.15));flex-shrink:0}
@@ -251,16 +311,11 @@ html,body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;o
 .msg-who{font-size:9px;letter-spacing:2px;text-transform:uppercase;font-weight:600}
 .msg-bubble{background:var(--s1);border:1px solid var(--border);border-radius:2px 12px 12px 12px;padding:14px 16px;width:100%}
 .msg-text{white-space:pre-wrap;word-break:break-word;font-size:13.5px;line-height:1.8;font-weight:300}
-
-/* ── USER MESSAGE ── */
 .msg{max-width:92%;padding:14px 16px;font-size:14px;line-height:1.8;font-weight:300}
 .msg.user{align-self:flex-end;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.2);border-radius:12px 2px 12px 12px}
 .msg-who-user{font-size:9px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;font-weight:600;color:var(--gold)}
-
-/* ── CHAT HEADER PORTRAIT ── */
 .chat-portrait-lg{width:56px;height:56px;border-radius:50%;object-fit:cover;object-position:top;border:2px solid var(--portrait-border, rgba(201,168,76,0.4));box-shadow:0 0 14px var(--portrait-glow, rgba(201,168,76,0.2));flex-shrink:0}
 .chat-portrait-lg-fallback{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0}
-
 .cursor{display:inline-block;width:2px;height:13px;background:var(--gold);margin-left:2px;vertical-align:middle;animation:blink-cursor .7s ease-in-out infinite}
 @keyframes blink-cursor{0%,100%{opacity:1}50%{opacity:0}}
 .thinking-portal{align-self:flex-start;background:var(--s1);border:1px solid rgba(201,168,76,.25);border-radius:2px 12px 12px 12px;padding:16px 18px;max-width:88%}
@@ -290,6 +345,63 @@ html,body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;o
 .time-opt.sel{border-color:var(--gold);color:var(--gold);background:rgba(201,168,76,.08)}
 .time-label{font-size:11px;letter-spacing:3px;color:var(--dim);text-transform:uppercase;margin-bottom:12px}
 
+/* ── QUANTUM DECIDE SCREEN ── */
+.qd-screen{min-height:100vh;padding:0 0 40px;animation:fadeUp .35s ease;display:flex;flex-direction:column}
+.qd-header{padding:44px 20px 20px;background:var(--s1);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:14px;flex-shrink:0}
+.qd-back{font-size:22px;cursor:pointer;color:var(--dim);transition:color .2s;line-height:1}
+.qd-back:hover{color:var(--gold)}
+.qd-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:600}
+.qd-subtitle{font-size:9px;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
+.qd-body{flex:1;overflow-y:auto;padding:20px 20px 40px}
+.qd-body::-webkit-scrollbar{width:0}
+.qd-tier-badge{display:inline-flex;align-items:center;gap:6px;background:rgba(201,168,76,.08);border:1px solid rgba(201,168,76,.2);border-radius:2px;padding:6px 12px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:16px}
+.qd-input-wrap{margin-bottom:16px}
+.qd-input{width:100%;background:var(--s1);border:1px solid var(--border);border-radius:3px;padding:14px 16px;color:var(--text);font-family:'Jost',sans-serif;font-size:14px;font-weight:300;outline:none;resize:none;min-height:80px;line-height:1.6;transition:border-color .2s}
+.qd-input::placeholder{color:var(--dim)}.qd-input:focus{border-color:rgba(201,168,76,.4)}
+.qd-btn{width:100%;background:linear-gradient(135deg,#C9A84C,#A8832A);color:#07090E;border:none;padding:15px;font-family:'Cormorant Garamond',serif;font-size:14px;letter-spacing:4px;text-transform:uppercase;font-weight:600;cursor:pointer;border-radius:1px;transition:all .3s;margin-bottom:8px}
+.qd-btn:hover{box-shadow:0 4px 28px rgba(201,168,76,.35)}
+.qd-btn:disabled{opacity:.3;cursor:not-allowed}
+
+/* Quantum scanning animation */
+.qd-scanning{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;gap:20px}
+.qd-scan-label{font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--gold);text-align:center;letter-spacing:2px}
+.qd-scan-sub{font-size:11px;color:var(--dim);letter-spacing:3px;text-transform:uppercase;text-align:center}
+.qd-scan-orb{width:80px;height:80px;border-radius:50%;border:1px solid rgba(201,168,76,.2);position:relative;display:flex;align-items:center;justify-content:center;animation:orbSpin 3s linear infinite}
+@keyframes orbSpin{to{transform:rotate(360deg)}}
+.qd-scan-orb::before{content:'';position:absolute;inset:-8px;border-radius:50%;border:1px solid rgba(201,168,76,.08);animation:orbSpin 4s linear infinite reverse}
+.qd-scan-dot{width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 12px rgba(201,168,76,.8)}
+
+/* Path cards */
+.qd-result-label{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-bottom:4px}
+.qd-result-q{font-family:'Cormorant Garamond',serif;font-size:17px;color:var(--text);margin-bottom:20px;line-height:1.4;font-style:italic}
+.qd-paths{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
+.qd-path{background:var(--s1);border:1px solid var(--border);border-left:3px solid var(--path-color, var(--gold));border-radius:3px;overflow:hidden;transition:all .2s;animation:fadeUp .4s ease both}
+.qd-path:hover{background:var(--s2)}
+.qd-path-header{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;cursor:pointer}
+.qd-path-num{width:28px;height:28px;border-radius:50%;background:rgba(201,168,76,.1);border:1px solid rgba(201,168,76,.25);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:12px;color:var(--gold);flex-shrink:0;margin-top:2px}
+.qd-path-info{flex:1}
+.qd-path-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:4px}
+.qd-path-text{font-size:13.5px;line-height:1.5;color:var(--text);font-weight:300}
+.qd-path-toggle{color:var(--dim);font-size:14px;flex-shrink:0;margin-top:4px;transition:transform .2s}
+.qd-path-toggle.open{transform:rotate(180deg)}
+.qd-path-body{padding:0 16px 16px;border-top:1px solid var(--border)}
+
+/* Guidance block */
+.qd-guidance{background:rgba(201,168,76,.04);border:1px solid rgba(201,168,76,.12);border-left:2px solid var(--path-color, var(--gold));border-radius:2px;padding:12px 14px;margin-bottom:12px;margin-top:12px}
+.qd-guidance-label{font-size:8px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:6px;opacity:.8}
+.qd-guidance-text{font-size:12.5px;color:var(--dim);line-height:1.7;font-weight:300}
+
+/* Outcomes */
+.qd-outcomes-label{font-size:8px;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-bottom:8px}
+.qd-outcomes{display:flex;flex-direction:column;gap:6px}
+.qd-outcome{background:var(--bg);border:1px solid var(--border);border-radius:2px;padding:10px 12px}
+.qd-outcome-label{font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:3px;opacity:.7}
+.qd-outcome-text{font-size:12.5px;color:var(--dim);line-height:1.55;font-weight:300}
+
+.qd-new-btn{background:transparent;border:1px solid var(--border);color:var(--dim);padding:12px;border-radius:2px;cursor:pointer;width:100%;font-family:'Jost',sans-serif;font-size:11px;letter-spacing:2px;text-transform:uppercase;transition:all .2s}
+.qd-new-btn:hover{border-color:rgba(201,168,76,.3);color:var(--gold)}
+.qd-err{text-align:center;color:#E07A8A;font-size:13px;padding:20px;line-height:1.6}
+
 /* ── ADMIN ── */
 .dm-admin-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.92);display:flex;align-items:center;justify-content:center;z-index:99999}
 .dm-admin-box{background:#0C0F18;border:1px solid rgba(201,168,76,.35);border-radius:4px;padding:2rem;width:90%;max-width:380px;box-shadow:0 0 40px rgba(201,168,76,.12)}
@@ -315,19 +427,20 @@ html,body{background:var(--bg);color:var(--text);font-family:'Jost',sans-serif;o
 .dm-admin-indicator{position:fixed;bottom:90px;right:16px;background:rgba(201,168,76,.12);border:1px solid rgba(201,168,76,.3);border-radius:2px;padding:4px 10px;font-size:0.6rem;color:var(--gold);letter-spacing:0.15em;text-transform:uppercase;cursor:pointer;z-index:200;font-family:'Jost',sans-serif}
 `;
 
+// ── Sub-components
 function FrameStep({ fq, value, active, locked, onSubmit }) {
   const [val, setVal] = useState(value || "");
   if (locked) return (
-    <div className="fstep">
-      <div className="fq" style={{ color: "var(--dim)", fontSize: 13 }}>{fq.prompt}</div>
+    <div style={{ marginBottom: 32 }}>
+      <div style={{ fontSize: 13, color: "var(--dim)", marginBottom: 6 }}>{fq.prompt}</div>
       <div style={{ fontSize: 14, paddingLeft: 4, color: "var(--text)" }}>{value}</div>
     </div>
   );
   return (
-    <div className="fstep">
-      <div className="fq">{fq.prompt}</div>
-      <textarea className="finput" placeholder={fq.placeholder} value={val} onChange={e => setVal(e.target.value)} autoFocus={active} rows={2} />
-      {active && <button className="btn-full" style={{ marginTop: 10 }} disabled={!val.trim()} onClick={() => onSubmit(val.trim())}>Next</button>}
+    <div style={{ marginBottom: 32 }}>
+      <div style={{ fontSize: 17, fontWeight: 400, marginBottom: 12, lineHeight: 1.4 }}>{fq.prompt}</div>
+      <textarea className="qd-input" placeholder={fq.placeholder} value={val} onChange={e => setVal(e.target.value)} autoFocus={active} rows={2} />
+      {active && <button className="qd-btn" style={{ marginTop: 10 }} disabled={!val.trim()} onClick={() => onSubmit(val.trim())}>Next →</button>}
     </div>
   );
 }
@@ -377,56 +490,66 @@ function NudgeCard({ companion, onRespond, onDismiss }) {
   );
 }
 
-// ── Portrait components
 function ChatHeaderPortrait({ companion }) {
   const [err, setErr] = useState(false);
-  if (!companion.img || err) {
-    return (
-      <div className="chat-portrait-lg-fallback" style={{ background: companion.bg }}>
-        <span style={{ color: companion.color }}>{companion.symbol}</span>
-      </div>
-    );
-  }
-  return (
-    <img
-      src={companion.img}
-      alt={companion.name}
-      className="chat-portrait-lg"
-      style={{ "--portrait-border": companion.color + "66", "--portrait-glow": companion.color + "33" }}
-      onError={() => setErr(true)}
-    />
-  );
+  if (!companion.img || err) return <div className="chat-portrait-lg-fallback" style={{ background: companion.bg }}><span style={{ color: companion.color }}>{companion.symbol}</span></div>;
+  return <img src={companion.img} alt={companion.name} className="chat-portrait-lg" style={{ "--portrait-border": companion.color + "66", "--portrait-glow": companion.color + "33" }} onError={() => setErr(true)} />;
 }
 
 function MessagePortrait({ companion }) {
   const [err, setErr] = useState(false);
-  if (!companion.img || err) {
-    return (
-      <div className="msg-portrait-lg-fallback" style={{ background: companion.bg }}>
-        <span style={{ color: companion.color }}>{companion.symbol}</span>
-      </div>
-    );
-  }
+  if (!companion.img || err) return <div className="msg-portrait-lg-fallback" style={{ background: companion.bg }}><span style={{ color: companion.color }}>{companion.symbol}</span></div>;
+  return <img src={companion.img} alt={companion.name} className="msg-portrait-lg" style={{ "--portrait-border": companion.color + "66", "--portrait-glow": companion.color + "22" }} onError={() => setErr(true)} />;
+}
+
+// ── Quantum Path Card component
+function QuantumPathCard({ path, index, companion, expanded, onToggle }) {
+  const colors = ["#C9A84C","#E07A8A","#5B9BD5","#A8A8A8","#E8754A","#9B72CF","#5BAD8A","#E8C96A"];
+  const color = colors[index % colors.length];
   return (
-    <img
-      src={companion.img}
-      alt={companion.name}
-      className="msg-portrait-lg"
-      style={{ "--portrait-border": companion.color + "66", "--portrait-glow": companion.color + "22" }}
-      onError={() => setErr(true)}
-    />
+    <div className="qd-path" style={{ "--path-color": color, animationDelay: `${index * 0.08}s` }}>
+      <div className="qd-path-header" onClick={onToggle}>
+        <div className="qd-path-num">{index + 1}</div>
+        <div className="qd-path-info">
+          <div className="qd-path-label" style={{ color }}>{path.label}</div>
+          <div className="qd-path-text">{path.text}</div>
+        </div>
+        <div className={`qd-path-toggle${expanded ? " open" : ""}`}>▼</div>
+      </div>
+      {expanded && (
+        <div className="qd-path-body">
+          {path.guidance && (
+            <div className="qd-guidance" style={{ "--path-color": color }}>
+              <div className="qd-guidance-label" style={{ color }}>{companion.name} · Guidance</div>
+              <div className="qd-guidance-text">{path.guidance}</div>
+            </div>
+          )}
+          {path.outcomes?.length > 0 && (
+            <>
+              <div className="qd-outcomes-label">Possible Outcomes</div>
+              <div className="qd-outcomes">
+                {path.outcomes.map((o, j) => (
+                  <div key={j} className="qd-outcome">
+                    <div className="qd-outcome-label">{o.label}</div>
+                    <div className="qd-outcome-text">{o.text}</div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
   );
 }
 
 export default function DayMasters() {
+  // ── Original state
   const [screen, setScreen] = useState("splash");
   const [assessIdx, setAssessIdx] = useState(0);
   const [answers, setAnswers] = useState({});
   const [companion, setCompanion] = useState(null);
   const [nav, setNav] = useState("home");
-  const [frame, setFrame] = useState({});
-  const [frameStep, setFrameStep] = useState(0);
-  const [frameConfirmed, setFrameConfirmed] = useState(false);
   const [talkCompanion, setTalkCompanion] = useState(null);
   const [habits, setHabits] = useState(HABIT_DEFAULTS);
   const [messages, setMessages] = useState([]);
@@ -440,6 +563,7 @@ export default function DayMasters() {
   const [nudgeDismissed, setNudgeDismissed] = useState(false);
   const msgsRef = useRef(null);
 
+  // ── Admin state
   const [showAdminPrompt, setShowAdminPrompt] = useState(false);
   const [showAdminDash, setShowAdminDash] = useState(false);
   const [adminInput, setAdminInput] = useState("");
@@ -450,9 +574,19 @@ export default function DayMasters() {
   const tapTimer = useRef(null);
   const orbRef = useRef(null);
 
+  // ── Quantum Decide state
+  const [qdSituation, setQdSituation] = useState("");
+  const [qdPaths, setQdPaths] = useState(null);
+  const [qdLoading, setQdLoading] = useState(false);
+  const [qdErr, setQdErr] = useState("");
+  const [qdExpanded, setQdExpanded] = useState(null);
+
   useEffect(() => {
     if (msgsRef.current) msgsRef.current.scrollTop = msgsRef.current.scrollHeight;
   }, [messages, thinking]);
+
+  const API_KEY = process.env.REACT_APP_ANTHROPIC_API_KEY;
+  const activeTier = isAdmin ? simTier : "free";
 
   function pickOpt(opt) {
     const updated = { ...answers, [assessIdx]: opt };
@@ -461,25 +595,10 @@ export default function DayMasters() {
     else setTimeout(() => setScreen("companions"), 350);
   }
 
-  function saveFrameStep(val) {
-    const key = FRAME_QUESTIONS[frameStep].key;
-    const updated = { ...frame, [key]: val };
-    setFrame(updated);
-    if (frameStep < FRAME_QUESTIONS.length - 1) setFrameStep(frameStep + 1);
-    else setFrameConfirmed(true);
-  }
-
-  const API_KEY = process.env.REACT_APP_ANTHROPIC_API_KEY;
-
   async function callAI(systemPrompt, msgs) {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-api-key": API_KEY,
-        "anthropic-version": "2023-06-01",
-        "anthropic-dangerous-direct-browser-access": "true"
-      },
+      headers: { "Content-Type": "application/json", "x-api-key": API_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
       body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 900, system: systemPrompt, messages: msgs }),
     });
     if (!res.ok) throw new Error("API error");
@@ -493,12 +612,7 @@ export default function DayMasters() {
     try {
       const res = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "x-api-key": API_KEY,
-          "anthropic-version": "2023-06-01",
-          "anthropic-dangerous-direct-browser-access": "true"
-        },
+        headers: { "Content-Type": "application/json", "x-api-key": API_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
         body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 900, stream: true, system: systemPrompt, messages: msgs }),
       });
       if (!res.ok || !res.body) throw new Error("stream_unavailable");
@@ -507,9 +621,7 @@ export default function DayMasters() {
       setMessages(prev => [...prev, { role: "ai", text: "" }]);
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
-      let buffer = "";
-      let accumulated = "";
-      let gotData = false;
+      let buffer = "", accumulated = "", gotData = false;
       while (true) {
         const { done, value } = await reader.read();
         if (done) break;
@@ -553,31 +665,18 @@ export default function DayMasters() {
   }
 
   async function startTalk(c) {
-    const intro = c.name + " is here with you.\n\nNo agenda. No decisions needed. Just talk. What is on your mind today?";
     setChatMode("talk");
-    setMessages([{ role: "ai", text: intro }]);
+    setMessages([{ role: "ai", text: c.name + " is here with you.\n\nNo agenda. No decisions needed. Just talk. What is on your mind today?" }]);
     setScreen("chat");
   }
 
   async function startGrow() {
     const c = companion;
     const doneCount = habits.filter(h => h.done).length;
-    const intro = c.name + " is checking in on your growth.\n\n" + doneCount + " of " + habits.length + " habits done today. Let us talk about where you are.";
-    const prompt = "User checking in on growth. " + doneCount + " of " + habits.length + " daily habits done today. Open a warm motivating check-in. Ask how they feel about their progress.";
     setChatMode("grow");
-    setMessages([{ role: "ai", text: intro }]);
+    setMessages([{ role: "ai", text: c.name + " is checking in on your growth.\n\n" + doneCount + " of " + habits.length + " habits done today. Let us talk about where you are." }]);
     setScreen("chat");
-    await runAI(getVoice(c, "grow"), [{ role: "user", content: prompt }], "grow");
-  }
-
-  async function launchDecideChat() {
-    const c = companion;
-    const intro = c.name + " has your full frame.\n\nGoal: " + frame.goal + "\nTimeframe: " + frame.timeframe + "\n\nMapping your paths now...";
-    const prompt = "Decision Frame:\nDecision: " + frame.decision + "\nGoal: " + frame.goal + "\nSuccess: " + frame.success + "\nTimeframe: " + frame.timeframe + "\nObstacle: " + frame.obstacle + "\n\nAcknowledge the weight first. Then present exactly 3 paths. Be specific to their actual goal.";
-    setChatMode("decide");
-    setMessages([{ role: "ai", text: intro }]);
-    setScreen("chat");
-    await runAI(getVoice(c, "decide"), [{ role: "user", content: prompt }], "decide");
+    await runAI(getVoice(c, "grow"), [{ role: "user", content: "User checking in on growth. " + doneCount + " of " + habits.length + " daily habits done today. Open a warm motivating check-in." }], "grow");
   }
 
   async function sendMsg() {
@@ -587,11 +686,39 @@ export default function DayMasters() {
     const updated = [...messages, { role: "user", text: txt }];
     setMessages(updated);
     const activeComp = chatMode === "talk" && talkCompanion ? talkCompanion : companion;
-    const voice = getVoice(activeComp, chatMode);
     const history = updated.filter((_, i) => i > 0).map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.text }));
-    await runAI(voice, history, chatMode);
+    await runAI(getVoice(activeComp, chatMode), history, chatMode);
   }
 
+  // ── Quantum Decide
+  async function runQuantumDecide() {
+    if (!qdSituation.trim() || qdLoading) return;
+    setQdLoading(true);
+    setQdErr("");
+    setQdPaths(null);
+    setQdExpanded(null);
+    try {
+      const result = await generateQuantumPaths(qdSituation, companion, activeTier, API_KEY);
+      if (result.paths?.length) {
+        setQdPaths(result.paths);
+      } else {
+        setQdErr("Could not map paths. Try describing your situation with more detail.");
+      }
+    } catch {
+      setQdErr("Connection lost. Check your signal and try again.");
+    }
+    setQdLoading(false);
+  }
+
+  function resetQuantumDecide() {
+    setQdSituation("");
+    setQdPaths(null);
+    setQdErr("");
+    setQdExpanded(null);
+    setQdLoading(false);
+  }
+
+  // ── Admin
   function handleOrbTap() {
     if (orbRef.current) {
       orbRef.current.style.transform = "scale(0.88)";
@@ -599,18 +726,13 @@ export default function DayMasters() {
     }
     tapCount.current += 1;
     clearTimeout(tapTimer.current);
-    if (tapCount.current >= 5) {
-      tapCount.current = 0;
-      setShowAdminPrompt(true);
-    } else {
-      tapTimer.current = setTimeout(() => { tapCount.current = 0; }, 1500);
-    }
+    if (tapCount.current >= 5) { tapCount.current = 0; setShowAdminPrompt(true); }
+    else tapTimer.current = setTimeout(() => { tapCount.current = 0; }, 1500);
   }
 
   function handleAdminSubmit() {
     if (adminInput.trim().toUpperCase() === ADMIN_KEY) {
-      setIsAdmin(true);
-      setShowAdminPrompt(false);
+      setIsAdmin(true); setShowAdminPrompt(false);
       setAdminInput(""); setAdminErr("");
       setShowAdminDash(true);
     } else {
@@ -628,13 +750,13 @@ export default function DayMasters() {
     <>
       <style>{css}</style>
 
+      {/* ADMIN PROMPT */}
       {showAdminPrompt && (
         <div className="dm-admin-overlay">
           <div className="dm-admin-box">
             <div className="dm-admin-title">⬡ Administrative Access</div>
-            <input className="dm-admin-input" type="password" placeholder="Enter admin key..."
-              value={adminInput} onChange={e => setAdminInput(e.target.value)}
-              onKeyDown={e => e.key === "Enter" && handleAdminSubmit()} autoFocus />
+            <input className="dm-admin-input" type="password" placeholder="Enter admin key..." value={adminInput}
+              onChange={e => setAdminInput(e.target.value)} onKeyDown={e => e.key === "Enter" && handleAdminSubmit()} autoFocus />
             <button className="dm-admin-btn" onClick={handleAdminSubmit}>Authenticate</button>
             {adminErr && <div className="dm-admin-err">{adminErr}</div>}
             <button className="dm-admin-close" onClick={() => { setShowAdminPrompt(false); setAdminErr(""); setAdminInput(""); }}>Cancel</button>
@@ -642,6 +764,7 @@ export default function DayMasters() {
         </div>
       )}
 
+      {/* ADMIN DASHBOARD */}
       {showAdminDash && (
         <div className="dm-admin-overlay">
           <div className="dm-admin-dash">
@@ -662,9 +785,9 @@ export default function DayMasters() {
             </div>
             <div className="dm-tier-notes">
               <div className="dm-tier-notes-head">Tier Structure</div>
-              <div>Free · Sofia + Drax · 2 paths · 2 outcomes each</div>
-              <div>Pro $19.99 · + Stewart, Aries, Mary · 4 paths · 4 outcomes</div>
-              <div>Premium $29.99 · + Solar (Super Agent) · 8 paths · 6 outcomes</div>
+              <div>Free · 2 paths · 2 outcomes each</div>
+              <div>Pro $19.99 · 4 paths · 4 outcomes each</div>
+              <div>Premium $29.99 · Solar Super Agent · 8 paths · 6 outcomes each</div>
             </div>
             <button className="dm-admin-close" onClick={() => setShowAdminDash(false)}>Close Dashboard</button>
           </div>
@@ -677,6 +800,7 @@ export default function DayMasters() {
 
       <div className="app">
 
+        {/* SPLASH */}
         {screen === "splash" && (
           <div className="splash">
             <div className="aura" />
@@ -692,6 +816,7 @@ export default function DayMasters() {
           </div>
         )}
 
+        {/* ASSESS */}
         {screen === "assess" && (
           <div className="screen">
             <div className="eyebrow">Self Assessment</div>
@@ -708,6 +833,7 @@ export default function DayMasters() {
           </div>
         )}
 
+        {/* COMPANIONS SELECT */}
         {screen === "companions" && (
           <div className="screen">
             <div className="eyebrow">Your Inner Council</div>
@@ -731,6 +857,7 @@ export default function DayMasters() {
           </div>
         )}
 
+        {/* NUDGE SETUP */}
         {screen === "nudge-setup" && (
           <div className="nudge-setup">
             <div className="eyebrow">Daily Nudges</div>
@@ -755,6 +882,7 @@ export default function DayMasters() {
           </div>
         )}
 
+        {/* DASHBOARD */}
         {screen === "dash" && (
           <div style={{ paddingBottom: 100 }}>
             <div className="dash-top">
@@ -781,10 +909,10 @@ export default function DayMasters() {
                     onDismiss={() => setNudgeDismissed(true)} />
                 )}
                 <div className="frameworks">
-                  <div className="fw-card decide" onClick={() => { setFrame({}); setFrameStep(0); setFrameConfirmed(false); setChatMode("decide"); setScreen("frame"); }}>
-                    <div className="fw-top"><span className="fw-icon">▶</span><span className="fw-label" style={{ color: "#C9A84C" }}>Decide</span></div>
-                    <div className="fw-sub">You have a choice to make. Your companion maps your parallel paths, shows you the outcomes, and holds you to the one you choose.</div>
-                    <div className="fw-action">Build my decision frame →</div>
+                  <div className="fw-card decide" onClick={() => { resetQuantumDecide(); setScreen("quantum-decide"); }}>
+                    <div className="fw-top"><span className="fw-icon">⚛️</span><span className="fw-label" style={{ color: "#C9A84C" }}>Decide</span></div>
+                    <div className="fw-sub">Map your quantum decision paths. See every possible outcome before you choose. Your companion counsels you through each one.</div>
+                    <div className="fw-action">Open quantum paths →</div>
                   </div>
                   <div className="fw-card talk" onClick={() => setScreen("talk-select")}>
                     <div className="fw-top"><span className="fw-icon">♡</span><span className="fw-label" style={{ color: "#E07A8A" }}>Talk</span></div>
@@ -802,7 +930,7 @@ export default function DayMasters() {
                   {HISTORY.map(h => (
                     <div key={h.id} className="hcard">
                       <div className="hcard-icon" style={{ color: h.framework === "decide" ? "#C9A84C" : h.framework === "talk" ? "#E07A8A" : "#5B9BD5" }}>
-                        {h.framework === "decide" ? "▶" : h.framework === "talk" ? "♡" : "△"}
+                        {h.framework === "decide" ? "⚛️" : h.framework === "talk" ? "♡" : "△"}
                       </div>
                       <div className="hcard-body">
                         <div className="htop"><span className="htype">{h.type}</span><span className="hdate">{h.date}</span></div>
@@ -847,6 +975,88 @@ export default function DayMasters() {
           </div>
         )}
 
+        {/* ── QUANTUM DECIDE SCREEN ── */}
+        {screen === "quantum-decide" && companion && (
+          <div className="qd-screen">
+            <div className="qd-header">
+              <div className="qd-back" onClick={() => setScreen("dash")}>←</div>
+              <div>
+                <div className="qd-title">Quantum Decide</div>
+                <div className="qd-subtitle">{companion.name} · {companion.title}</div>
+              </div>
+            </div>
+
+            <div className="qd-body">
+              {!qdPaths && !qdLoading && (
+                <>
+                  <div className="qd-tier-badge">
+                    {TIERS[activeTier].label} · {TIERS[activeTier].paths} Paths · {TIERS[activeTier].outcomes} Outcomes Each
+                  </div>
+                  <div style={{ fontSize: 13, color: "var(--dim)", lineHeight: 1.7, marginBottom: 20, fontWeight: 300 }}>
+                    {companion.id === "collective"
+                      ? "Solar will open the full quantum field — mapping all frequencies simultaneously across every path."
+                      : `${companion.name} will map your paths through the lens of ${companion.role.toLowerCase()}.`}
+                  </div>
+                  <div className="qd-input-wrap">
+                    <textarea
+                      className="qd-input"
+                      placeholder="Describe your situation or the decision you are facing. Be honest. The more real you are, the more real the paths will be."
+                      value={qdSituation}
+                      onChange={e => setQdSituation(e.target.value)}
+                      rows={4}
+                    />
+                  </div>
+                  <button className="qd-btn" onClick={runQuantumDecide} disabled={!qdSituation.trim()}>
+                    ⚛ Map My Quantum Paths
+                  </button>
+                  {qdErr && <div className="qd-err">{qdErr}</div>}
+                </>
+              )}
+
+              {qdLoading && (
+                <div className="qd-scanning">
+                  <div className="qd-scan-orb">
+                    <div className="qd-scan-dot" />
+                  </div>
+                  <div className="qd-scan-label">{companion.name} is reading the field</div>
+                  <div className="qd-scan-sub">
+                    {companion.id === "collective" ? "Synthesizing all frequencies..." : "Mapping your quantum paths..."}
+                  </div>
+                </div>
+              )}
+
+              {qdPaths && !qdLoading && (
+                <>
+                  <div className="qd-result-label">Your Situation</div>
+                  <div className="qd-result-q">"{qdSituation}"</div>
+
+                  <div style={{ fontSize: 11, color: "var(--dim)", letterSpacing: 2, textTransform: "uppercase", marginBottom: 12 }}>
+                    {qdPaths.length} Quantum Paths · Tap to expand
+                  </div>
+
+                  <div className="qd-paths">
+                    {qdPaths.map((path, i) => (
+                      <QuantumPathCard
+                        key={i}
+                        path={path}
+                        index={i}
+                        companion={companion}
+                        expanded={qdExpanded === i}
+                        onToggle={() => setQdExpanded(qdExpanded === i ? null : i)}
+                      />
+                    ))}
+                  </div>
+
+                  <button className="qd-new-btn" onClick={resetQuantumDecide}>
+                    ← New Decision
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* TALK SELECT */}
         {screen === "talk-select" && (
           <div className="talk-screen">
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
@@ -872,6 +1082,7 @@ export default function DayMasters() {
           </div>
         )}
 
+        {/* GROW DASH */}
         {screen === "grow-dash" && (
           <div className="grow-screen">
             <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
@@ -898,41 +1109,7 @@ export default function DayMasters() {
           </div>
         )}
 
-        {screen === "frame" && (
-          <div className="frame-screen">
-            <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 32 }}>
-              <span style={{ fontSize: 22, cursor: "pointer", color: "var(--dim)" }} onClick={() => setScreen("dash")}>←</span>
-              <div>
-                <div className="eyebrow" style={{ marginBottom: 2 }}>Decide</div>
-                <div className="heading" style={{ marginBottom: 0 }}>Build Your Frame</div>
-              </div>
-            </div>
-            <div className="sub">{companion?.name} needs the full picture to map your paths accurately.</div>
-            {!frameConfirmed ? (
-              FRAME_QUESTIONS.slice(0, frameStep + 1).map((fq, i) => (
-                <FrameStep key={fq.key} fq={fq} value={frame[fq.key] || ""} active={i === frameStep} locked={i < frameStep} onSubmit={saveFrameStep} />
-              ))
-            ) : (
-              <>
-                <div className="fbox">
-                  <div className="fboxtitle">Your Decision Frame</div>
-                  {FRAME_QUESTIONS.map(fq => (
-                    <div key={fq.key} className="frow">
-                      <div className="frlabel">{fq.prompt.replace("?", "")}</div>
-                      <div className="frval">{frame[fq.key]}</div>
-                    </div>
-                  ))}
-                </div>
-                <p style={{ fontSize: 13, color: "var(--dim)", marginBottom: 24, lineHeight: 1.7, fontWeight: 300 }}>
-                  {companion?.name} has your full picture and will now reveal your 3 core paths.
-                </p>
-                <button className="btn-full" style={{ marginTop: 0 }} onClick={launchDecideChat}>Reveal My Paths with {companion?.name}</button>
-                <button className="btn-ghost" style={{ width: "100%", marginTop: 10 }} onClick={() => { setFrameConfirmed(false); setFrameStep(0); }}>Start Over</button>
-              </>
-            )}
-          </div>
-        )}
-
+        {/* CHAT */}
         {screen === "chat" && activeComp && (
           <div className="chat-screen">
             <div className="chat-head">
@@ -967,7 +1144,7 @@ export default function DayMasters() {
                       </div>
                     </div>
                   ) : (
-                    <div className="msg user" style={{ alignSelf: "flex-end" }}>
+                    <div className="msg user">
                       <div className="msg-who-user">You</div>
                       <div className="msg-text">{m.text}</div>
                     </div>
