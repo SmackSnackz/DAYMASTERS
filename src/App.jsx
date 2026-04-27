@@ -3,42 +3,42 @@ import { useState, useRef, useEffect } from "react";
 const COMPANIONS = [
   {
     id: "collective", name: "Solar", title: "The Collective", role: "The Singularity",
-    img: "/solar.png",
+    img: "/solar.png", tier: "premium",
     desc: "All voices unified into one. The master. Consult Solar when the decision defines your life.",
     color: "#C9A84C", bg: "rgba(201,168,76,0.08)", border: "rgba(201,168,76,0.35)", symbol: "◈", master: true,
     nudges: ["Solar is with you. Every path you walk today was chosen by you. Choose consciously.", "The universe responds to you. What decision will you lead with today?", "You are the sum of every choice you have made. Today adds another. Make it count.", "Solar sees all your paths. Which one calls to you before the noise begins?", "Every day is a new quantum moment. What version of yourself will you choose to be?"],
   },
   {
     id: "compassionate", name: "Sofia", title: "The Compassionate", role: "Heart & Empathy",
-    img: "/sophia.png",
+    img: "/sophia.png", tier: "free",
     desc: "Sofia speaks from pure love. She feels your weight before she speaks a word.",
     color: "#E07A8A", bg: "rgba(224,122,138,0.08)", border: "rgba(224,122,138,0.35)", symbol: "♡",
     nudges: ["Good morning. Sofia is checking in. How are you really feeling today?", "Loving yourself is the first decision of every day. Have you made it yet?", "The people in your life feel the energy you carry. What are you bringing today?", "What is one kind thing you can do for yourself before this day gets loud?", "Your heart has been carrying a lot. Take a breath. You are doing better than you think."],
   },
   {
     id: "logical", name: "Stewart", title: "The Logical", role: "Mind & Strategy",
-    img: "/stewart.png",
+    img: "/stewart.png", tier: "pro",
     desc: "Stewart is the sharpest mind in the room. No emotion — just pure strategic clarity.",
     color: "#5B9BD5", bg: "rgba(91,155,213,0.08)", border: "rgba(91,155,213,0.35)", symbol: "⟁",
     nudges: ["Stewart here. What is the one high-leverage action you can take today?", "Discipline is a decision repeated. What decision will you repeat today?", "Have you reviewed your goals this week? Clarity requires maintenance.", "Small consistent actions compound into extraordinary results. What is today's action?", "Are your habits today aligned with where you said you wanted to go?"],
   },
   {
     id: "realist", name: "Drax", title: "The Realist", role: "Ground & Truth",
-    img: "/drax.png",
+    img: "/drax.png", tier: "free",
     desc: "Drax keeps it all the way real. Street wisdom meets radical honesty.",
     color: "#A8A8A8", bg: "rgba(168,168,168,0.08)", border: "rgba(168,168,168,0.35)", symbol: "◎",
     nudges: ["Drax checking in. Are you moving toward your goals or making excuses? Be real.", "Comfort is the enemy of the life you said you wanted. What habit is holding you back?", "The truth you keep avoiding is still gonna be there tomorrow. Face one thing today.", "Did you do what you said you were gonna do? Accountability starts with you.", "What is the real reason you have not started yet? Name it. Then move past it."],
   },
   {
     id: "fearless", name: "Aries", title: "The Fearless", role: "Courage & Risk",
-    img: "/aries.png",
+    img: "/aries.png", tier: "pro",
     desc: "Aries is pure fire. The voice that pushes you past every wall fear ever built.",
     color: "#E8754A", bg: "rgba(232,117,74,0.08)", border: "rgba(232,117,74,0.35)", symbol: "↯",
     nudges: ["Aries here. What is the one bold move you have been putting off? Today is the day.", "Fear is just excitement without permission. Give yourself permission today.", "The version of you that you dream about — what would they do this morning?", "Courage is not the absence of fear. It is moving despite it. Move today.", "You are one decision away from a completely different life. What is that decision?"],
   },
   {
     id: "intuitive", name: "Mary", title: "The Intuitive", role: "Spirit & Instinct",
-    img: "/mary.png",
+    img: "/mary.png", tier: "pro",
     desc: "Mary speaks from the deepest place — the quiet voice inside you that already knows.",
     color: "#9B72CF", bg: "rgba(155,114,207,0.08)", border: "rgba(155,114,207,0.35)", symbol: "◉",
     nudges: ["Mary is with you. Before the day begins — what does your gut already know?", "Your intuition has never truly failed you. What is it whispering right now?", "Take three deep breaths. What do you already know that you have been afraid to trust?", "You came here for a reason. Your spirit knows the path. Trust it today.", "What does your soul need to hear most this morning? Say it to yourself."],
@@ -840,18 +840,26 @@ export default function DayMasters() {
             <div className="heading">Meet Your Companions</div>
             <div className="sub">Six companions. Each a mirror of a different part of you.</div>
             <div className="clist">
-              {COMPANIONS.map(c => (
-                <div key={c.id} className={`ccard ${c.master ? "master" : ""} ${companion?.id === c.id ? "sel" : ""}`}
-                  style={{ "--cc": c.color, "--cbg": c.bg, "--cb": c.border }} onClick={() => setCompanion(c)}>
-                  <div className="csym" style={{ color: c.color, filter: `drop-shadow(0 0 10px ${c.color})` }}>{c.symbol}</div>
-                  <div className="cbody">
-                    <div className="cname">{c.name}</div>
-                    <div className="ctitle" style={{ color: c.color }}>{c.title} &middot; {c.role}</div>
-                    <div className="cdesc">{c.desc}</div>
+              {COMPANIONS.map(c => {
+                const locked = (c.tier === "pro" && activeTier === "free") || (c.tier === "premium" && activeTier !== "premium");
+                return (
+                  <div key={c.id}
+                    className={`ccard ${c.master ? "master" : ""} ${companion?.id === c.id ? "sel" : ""}`}
+                    style={{ "--cc": c.color, "--cbg": c.bg, "--cb": c.border, opacity: locked ? 0.35 : 1, cursor: locked ? "not-allowed" : "pointer" }}
+                    onClick={() => !locked && setCompanion(c)}>
+                    <div className="csym" style={{ color: c.color, filter: `drop-shadow(0 0 10px ${c.color})` }}>
+                      {locked ? "🔒" : c.symbol}
+                    </div>
+                    <div className="cbody">
+                      <div className="cname">{c.name}</div>
+                      <div className="ctitle" style={{ color: c.color }}>{c.title} &middot; {c.role}</div>
+                      <div className="cdesc">{locked ? `Requires ${c.tier.toUpperCase()} tier` : c.desc}</div>
+                    </div>
+                    {c.master && <div className="mpill">Premium</div>}
+                    {locked && c.tier === "pro" && <div className="mpill" style={{ borderColor: "rgba(91,155,213,0.4)", color: "#5B9BD5" }}>Pro</div>}
                   </div>
-                  {c.master && <div className="mpill">Master</div>}
-                </div>
-              ))}
+                );
+              })}
             </div>
             <button className="btn-full" disabled={!companion} onClick={() => setScreen("nudge-setup")}>Continue with {companion?.name || "..."}</button>
           </div>
@@ -1067,15 +1075,20 @@ export default function DayMasters() {
               </div>
             </div>
             <div className="sub">Pick the companion whose voice you need most right now.</div>
-            {COMPANIONS.map(c => (
-              <div key={c.id} className="cpick" onClick={() => { setTalkCompanion(c); startTalk(c); }}>
-                <div className="cpick-sym" style={{ color: c.color }}>{c.symbol}</div>
-                <div>
-                  <div className="cpick-name">{c.name}</div>
-                  <div className="cpick-role" style={{ color: c.color }}>{c.role}</div>
+            {COMPANIONS.map(c => {
+              const locked = (c.tier === "pro" && activeTier === "free") || (c.tier === "premium" && activeTier !== "premium");
+              return (
+                <div key={c.id} className="cpick"
+                  style={{ opacity: locked ? 0.35 : 1, cursor: locked ? "not-allowed" : "pointer" }}
+                  onClick={() => { if (!locked) { setTalkCompanion(c); startTalk(c); } }}>
+                  <div className="cpick-sym" style={{ color: c.color }}>{locked ? "🔒" : c.symbol}</div>
+                  <div>
+                    <div className="cpick-name">{c.name}</div>
+                    <div className="cpick-role" style={{ color: c.color }}>{locked ? `${c.tier.toUpperCase()} only` : c.role}</div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
             <button className="btn-full" style={{ marginTop: 4 }} onClick={() => { setTalkCompanion(companion); startTalk(companion); }}>
               Talk to {companion?.name || "my companion"}
             </button>
@@ -1130,7 +1143,7 @@ export default function DayMasters() {
                   {m.role === "ai" ? (
                     <div className="msg-ai-wrap">
                       <div className="msg-ai-header">
-                        <MessagePortrait companion={activeComp} />
+                        {chatMode === "talk" && <MessagePortrait companion={activeComp} />}
                         <div className="msg-who" style={{ color: activeComp.color }}>{activeComp.name} · {activeComp.role}</div>
                       </div>
                       <div className="msg-bubble">
