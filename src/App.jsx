@@ -182,13 +182,7 @@ function buildMemoryContext(mem, companionId) {
 
   if (!parts.length) return "";
 
-  return `
-
-MEMORY — What you already know about this person:
-${parts.join("
-")}
-
-Use this naturally. Reference it when relevant. Build on the relationship you already have. Never say "as you mentioned before" robotically — just know them.`;
+  return "\n\nMEMORY — What you already know about this person:\n" + parts.join("\n") + "\n\nUse this naturally. Reference it when relevant. Build on the relationship you already have. Never say \"as you mentioned before\" robotically — just know them.";
 }
 
 async function extractAndSaveMemory(messages, companionId, apiKey) {
@@ -1355,6 +1349,7 @@ export default function DayMasters() {
     </>
   );
 }
+
 
 
 
