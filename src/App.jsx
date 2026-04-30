@@ -869,12 +869,8 @@ export default function DayMasters() {
     } else {
       // First time — fresh intro
       const intro = mem.userName
-        ? c.name + " is here with you, " + mem.userName + ".
-
-No agenda. No decisions needed. Just talk. What is on your mind today?"
-        : c.name + " is here with you.
-
-No agenda. No decisions needed. Just talk. What is on your mind today?";
+        ? c.name + " is here with you, " + mem.userName + ".\n\nNo agenda. No decisions needed. Just talk. What is on your mind today?"
+        : c.name + " is here with you.\n\nNo agenda. No decisions needed. Just talk. What is on your mind today?";
       setMessages([{ role: "ai", text: intro, isIntro: true }]);
     }
     setScreen("chat");
@@ -1436,7 +1432,6 @@ No agenda. No decisions needed. Just talk. What is on your mind today?";
     </>
   );
 }
-
 
 
 
