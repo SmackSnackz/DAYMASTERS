@@ -231,6 +231,39 @@ Facts should be concrete things like: their job, goals, struggles, relationships
 }
 // ─── END MEMORY SYSTEM ────────────────────────────────────────────────────────
 
+// ─── CHAT HISTORY SYSTEM ─────────────────────────────────────────────────────
+const CHAT_HISTORY_KEY = "dm_chat_history";
+const MAX_HISTORY_PER_COMPANION = 60; // max messages saved per companion
+
+function loadChatHistory(companionId) {
+  try {
+    const raw = localStorage.getItem(CHAT_HISTORY_KEY);
+    const all = raw ? JSON.parse(raw) : {};
+    return all[companionId] || [];
+  } catch { return []; }
+}
+
+function saveChatHistory(companionId, messages) {
+  try {
+    const raw = localStorage.getItem(CHAT_HISTORY_KEY);
+    const all = raw ? JSON.parse(raw) : {};
+    // Save last N messages, keep intro messages out of saved history
+    const toSave = messages.slice(-MAX_HISTORY_PER_COMPANION);
+    all[companionId] = toSave;
+    localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(all));
+  } catch {}
+}
+
+function clearChatHistory(companionId) {
+  try {
+    const raw = localStorage.getItem(CHAT_HISTORY_KEY);
+    const all = raw ? JSON.parse(raw) : {};
+    delete all[companionId];
+    localStorage.setItem(CHAT_HISTORY_KEY, JSON.stringify(all));
+  } catch {}
+}
+// ─── END CHAT HISTORY SYSTEM ──────────────────────────────────────────────────
+
 
 const TIERS = {
   free: { label: "FREE", paths: 2, outcomes: 2 },
@@ -811,7 +844,39 @@ export default function DayMasters() {
 
   async function startTalk(c) {
     setChatMode("talk");
-    setMessages([{ role: "ai", text: c.name + " is here with you.\n\nNo agenda. No decisions needed. Just talk. What is on your mind today?" }]);
+    // Load saved chat history for this companion
+    const savedHistory = loadChatHistory(c.id);
+    const mem = loadMemory();
+    const memContext = buildMemoryContext(mem, c.id);
+    if (savedHistory.length > 0) {
+      // Returning user — load history + add a welcome back message
+      const welcomeBack = {
+        role: "ai",
+        text: c.id === "compassionate"
+          ? (mem.userName ? `${mem.userName}, you came back. I missed you. What is on your heart?` : "You came back. I have been thinking about you. What is on your heart today?")
+          : c.id === "intuitive"
+          ? (mem.userName ? `${mem.userName}. I felt you coming. What does your spirit need today?` : "You came back. I felt you coming. What does your spirit need today?")
+          : c.id === "collective"
+          ? (mem.userName ? `${mem.userName}. The elder is here. What weighs on you?` : "You return. The elder is here. What weighs on you today?")
+          : c.id === "realist"
+          ? (mem.userName ? `${mem.userName}. Real talk — what are we dealing with today?` : "You are back. Real talk — what are we dealing with today?")
+          : c.id === "fearless"
+          ? (mem.userName ? `${mem.userName}. Let us go. What are we conquering today?` : "You are back. Let us go. What are we conquering today?")
+          : (mem.userName ? `${mem.userName}. Good to have you back. What are we solving today?` : "Good to have you back. What are we solving today?"),
+        isIntro: true,
+      };
+      setMessages([...savedHistory, welcomeBack]);
+    } else {
+      // First time — fresh intro
+      const intro = mem.userName
+        ? c.name + " is here with you, " + mem.userName + ".
+
+No agenda. No decisions needed. Just talk. What is on your mind today?"
+        : c.name + " is here with you.
+
+No agenda. No decisions needed. Just talk. What is on your mind today?";
+      setMessages([{ role: "ai", text: intro, isIntro: true }]);
+    }
     setScreen("chat");
   }
 
@@ -840,10 +905,14 @@ export default function DayMasters() {
     const history = updated.filter((_, i) => i > 0).map(m => ({ role: m.role === "user" ? "user" : "assistant", content: m.text }));
     await runAI(voiceWithMemory, history, chatMode);
 
+    // Save chat history after every message (exclude intro messages)
+    const toSave = updated.filter(m => !m.isIntro);
+    saveChatHistory(activeComp.id, toSave);
+
     // Extract and save memory in background after every 4 user messages
     const userMsgCount = updated.filter(m => m.role === "user").length;
     if (userMsgCount > 0 && userMsgCount % 4 === 0) {
-      extractAndSaveMemory(updated, activeComp.id, API_KEY).then(newMem => {
+      extractAndSaveMemory(updated, activeComp.id, API_KEY).then(() => {
         setUserMemory(loadMemory());
       });
     }
@@ -1286,10 +1355,13 @@ export default function DayMasters() {
           <div className="chat-screen">
             <div className="chat-head">
               <div className="chat-back" onClick={() => {
-              // Extract memory when leaving chat
-              if (messages.length > 4) {
-                const activeC = chatMode === "talk" && talkCompanion ? talkCompanion : companion;
-                extractAndSaveMemory(messages, activeC?.id, API_KEY).then(() => setUserMemory(loadMemory()));
+              const activeC = chatMode === "talk" && talkCompanion ? talkCompanion : companion;
+              if (activeC && messages.length > 2) {
+                // Save chat history
+                const toSave = messages.filter(m => !m.isIntro);
+                saveChatHistory(activeC.id, toSave);
+                // Extract memory facts
+                extractAndSaveMemory(messages, activeC.id, API_KEY).then(() => setUserMemory(loadMemory()));
               }
               setScreen("dash");
             }}>←</div>
@@ -1298,8 +1370,23 @@ export default function DayMasters() {
                 <div className="chat-cname">{activeComp.name}</div>
                 <div className="chat-ctitle">{activeComp.title} &middot; {activeComp.role}</div>
               </div>
-              <div className={`chat-mode-badge ${chatMode}`}>
-                {chatMode === "decide" ? "Decide" : chatMode === "talk" ? "Talk" : "Grow"}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4 }}>
+                <div className={`chat-mode-badge ${chatMode}`} style={{ position: "static" }}>
+                  {chatMode === "decide" ? "Decide" : chatMode === "talk" ? "Talk" : "Grow"}
+                </div>
+                {chatMode === "talk" && (
+                  <div
+                    style={{ fontSize: "0.55rem", color: "var(--dim)", letterSpacing: "0.1em", cursor: "pointer", textTransform: "uppercase", padding: "2px 4px" }}
+                    onClick={() => {
+                      if (window.confirm("Clear conversation history with " + activeComp.name + "?")) {
+                        clearChatHistory(activeComp.id);
+                        setMessages([{ role: "ai", text: activeComp.name + " is here with you.\n\nFresh start. What is on your mind?", isIntro: true }]);
+                      }
+                    }}
+                  >
+                    Clear
+                  </div>
+                )}
               </div>
             </div>
 
