@@ -278,7 +278,7 @@ Facts should be concrete things like: their job, goals, struggles, relationships
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-      body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 300, system, messages: [{ role: "user", content: prompt }] }),
+      body: JSON.stringify({ model: "claude-sonnet-4-5-20251022", max_tokens: 300, system, messages: [{ role: "user", content: prompt }] }),
     });
     const data = await res.json();
     const raw = data.content?.[0]?.text || "{}";
@@ -394,7 +394,7 @@ Outcome labels to use in order: ${OUTCOME_LABELS.slice(0, outcomeCount).join(", 
       "anthropic-dangerous-direct-browser-access": "true",
     },
     body: JSON.stringify({
-      model: "claude-sonnet-4-20250514",
+      model: "claude-sonnet-4-5-20251022",
       max_tokens: isSolar ? 4000 : 2000,
       system,
       messages: [{ role: "user", content: prompt }],
@@ -849,7 +849,7 @@ export default function DayMasters() {
     const res = await fetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": API_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-      body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 900, system: systemPrompt, messages: msgs }),
+      body: JSON.stringify({ model: "claude-sonnet-4-5-20251022", max_tokens: 900, system: systemPrompt, messages: msgs }),
     });
     if (!res.ok) throw new Error("API error");
     const data = await res.json();
@@ -863,7 +863,7 @@ export default function DayMasters() {
       const res = await fetch("https://api.anthropic.com/v1/messages", {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-api-key": API_KEY, "anthropic-version": "2023-06-01", "anthropic-dangerous-direct-browser-access": "true" },
-        body: JSON.stringify({ model: "claude-sonnet-4-20250514", max_tokens: 900, stream: true, system: systemPrompt, messages: msgs }),
+        body: JSON.stringify({ model: "claude-sonnet-4-5-20251022", max_tokens: 900, stream: true, system: systemPrompt, messages: msgs }),
       });
       if (!res.ok || !res.body) throw new Error("stream_unavailable");
       setThinking(false);
